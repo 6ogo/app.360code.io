@@ -239,7 +239,7 @@ async function generateCode(): Promise<void> {
         
         // Generate response using the appropriate API URL
         // For local development, use relative path. For production, use the full URL.
-        const apiUrl = API_BASE_URL ? `${API_BASE_URL}/api/generate` : '/generate';
+        const apiUrl = API_BASE_URL ? `${API_BASE_URL}/generate` : '/generate';
         
         console.log(`Sending request to: ${apiUrl}`);
         
