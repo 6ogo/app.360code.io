@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "groq-sdk": "^0.16.0"
@@ -11,8 +12,9 @@
     "typescript": "^5.8.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "build": "tsc",
+    "start": "node server.js",
+    "dev": "tsc && node server.js"
   },
   "repository": {
     "type": "git",
