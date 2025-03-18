@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "groq-sdk": "^0.16.0"
+  },
+  "name": "360code",
+  "version": "1.0.0",
+  "main": "server.js",
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/6ogo/360code.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/6ogo/360code/issues"
+  },
+  "homepage": "https://github.com/6ogo/360code#readme",
+  "description": ""
+}
