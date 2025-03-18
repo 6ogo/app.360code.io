@@ -11,7 +11,12 @@ dotenv.config();
 // Initialize Express
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Debug: Print environment variables to verify they're loading
+console.log('Environment variables:');
+console.log('- SUPABASE_URL is ' + (process.env.SUPABASE_URL ? 'set' : 'NOT SET'));
+console.log('- SUPABASE_ANON_KEY is ' + (process.env.SUPABASE_ANON_KEY ? 'set' : 'NOT SET'));
+console.log('- GROQ_API_KEY is ' + (process.env.GROQ_API_KEY ? 'set' : 'NOT SET'));
 
 // Initialize Groq client
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -46,13 +51,38 @@ if (supabaseUrl && supabaseKey) {
     }
 }
 
-// Inject Supabase credentials into the HTML response
-app.get('/', (req, res) => {
+// Function to inject Supabase credentials into HTML
+function injectCredentialsIntoHTML(htmlContent) {
+    let modifiedHtml = htmlContent;
+    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${supabaseUrl || ''}'`);
+    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_KEY__'/g, `'${supabaseKey || ''}'`);
+    return modifiedHtml;
+}
+
+// Serve static files EXCEPT for index.html (we'll handle that separately)
+app.use(express.static(path.join(__dirname, 'public'), {
+    index: false  // Don't auto-serve index.html
+}));
+
+// Serve index.html with injected credentials for ALL routes (SPA support)
+app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/generate') || 
+        req.path.startsWith('/save-project') || 
+        req.path.startsWith('/projects/') ||
+        req.path.startsWith('/admin/')) {
+        return next();
+    }
+    
     try {
-        let indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-        indexHtml = indexHtml.replace('__SUPABASE_URL__', supabaseUrl || '');
-        indexHtml = indexHtml.replace('__SUPABASE_KEY__', supabaseKey || '');
-        res.send(indexHtml);
+        const indexPath = path.join(__dirname, 'public', 'index.html');
+        let htmlContent = fs.readFileSync(indexPath, 'utf8');
+        
+        // Inject Supabase credentials
+        htmlContent = injectCredentialsIntoHTML(htmlContent);
+        
+        console.log(`Serving HTML with Supabase credentials for path: ${req.path}`);
+        res.send(htmlContent);
     } catch (error) {
         console.error('Error serving index.html:', error);
         res.status(500).send('Error loading application');
@@ -173,11 +203,6 @@ app.post('/admin/cleanup-conversations', async (req, res) => {
         console.error('Error during manual cleanup:', error);
         res.status(500).json({ error: 'Failed to clean up conversations' });
     }
-});
-
-// Serve static files for any route not handled (for SPA)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start the server
