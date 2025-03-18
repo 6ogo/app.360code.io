@@ -164,7 +164,7 @@ function startNewChat() {
     sidebar.classList.remove('open');
 }
 function generateCode() {
-    return __awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, async function* () {
         const message = promptElement.value.trim();
         if (!message) {
             alert('Please enter a prompt.');
@@ -199,10 +199,10 @@ function generateCode() {
             currentConversation.temperature = temperature;
             
             // Generate response using the appropriate API URL
-            const apiUrl = API_BASE_URL ? `${API_BASE_URL}/generate` : '/generate';
+            const apiUrl = '/generate'; // Use the direct endpoint path
             console.log(`Sending request to: ${apiUrl}`);
             
-            const response = yield fetch(apiUrl, {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -211,6 +211,7 @@ function generateCode() {
                     temperature: temperature
                 })
             });
+            
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status}: ${response.statusText}`);
             }
