@@ -234,8 +234,14 @@ async function generateCode(): Promise<void> {
         currentConversation.model = model;
         currentConversation.temperature = temperature;
         
+        // Get current URL path 
+        const currentPath = window.location.pathname;
+        
+        // Build the correct API URL (using same origin to avoid CORS issues)
+        const apiUrl = `${window.location.origin}/generate`;
+        
         // Generate response
-        const response = await fetch('/generate', {
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -244,6 +250,15 @@ async function generateCode(): Promise<void> {
                 temperature: temperature
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON. Make sure your server is properly set up.');
+        }
         
         const data = await response.json();
         
@@ -329,7 +344,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)`;
         
     } catch (error) {
         console.error('Error:', error);
-        updateAIMessage(aiMessageElement, `Error: ${(error as Error).message}`);
+        updateAIMessage(aiMessageElement, `Error: ${(error as Error).message}. Please make sure your server is running and properly configured.`);
     } finally {
         // Re-enable input
         promptElement.disabled = false;
@@ -492,36 +507,45 @@ function copyTextToClipboard(text: string): void {
 // Storage Functions
 async function saveConversation(conversation: Conversation): Promise<any> {
     try {
-        if ((window as any).supabase) {
-            // Get current user
-            const { data: { user } } = await (window as any).supabase.auth.getUser();
-            
-            const userId = user ? user.id : 'anonymous';
-            
-            // Save to Supabase
-            const { data, error } = await (window as any).supabase
-                .from('conversations')
-                .upsert([
-                    {
-                        id: conversation.id,
-                        user_id: userId,
-                        title: conversation.title,
-                        messages: conversation.messages,
-                        code: conversation.code,
-                        schema: conversation.schema,
-                        env: conversation.env,
-                        connection: conversation.connection,
-                        model: conversation.model,
-                        temperature: conversation.temperature,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }
-                ])
-                .select();
-            
-            if (error) throw error;
-            
-            return data;
+        // Check if Supabase is available (using the global variable from index.html)
+        const supabase = (window as any).supabaseClient;
+        
+        if (supabase) {
+            try {
+                // Get current user
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                const userId = user ? user.id : 'anonymous';
+                
+                // Save to Supabase
+                const { data, error } = await supabase
+                    .from('conversations')
+                    .upsert([
+                        {
+                            id: conversation.id,
+                            user_id: userId,
+                            title: conversation.title,
+                            messages: conversation.messages,
+                            code: conversation.code,
+                            schema: conversation.schema,
+                            env: conversation.env,
+                            connection: conversation.connection,
+                            model: conversation.model,
+                            temperature: conversation.temperature,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }
+                    ])
+                    .select();
+                
+                if (error) throw error;
+                
+                return data;
+            } catch (error) {
+                console.error('Supabase error:', error);
+                // Fall back to localStorage
+                localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
+            }
         } else {
             // Fall back to localStorage
             localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
@@ -535,29 +559,51 @@ async function saveConversation(conversation: Conversation): Promise<any> {
 
 async function loadConversationHistory(): Promise<void> {
     try {
-        if ((window as any).supabase) {
-            // Get current user
-            const { data: { user } } = await (window as any).supabase.auth.getUser();
-            
-            if (!user) {
-                // No user, try to load from localStorage
-                loadLocalConversations();
-                return;
-            }
-            
-            // Get conversations from Supabase
-            const { data, error } = await (window as any).supabase
-                .from('conversations')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('updated_at', { ascending: false });
-            
-            if (error) throw error;
-            
-            if (data && data.length > 0) {
-                renderConversationHistory(data);
-            } else {
-                // No conversations in Supabase, try localStorage
+        // Check if Supabase is available (using the global variable from index.html)
+        const supabase = (window as any).supabaseClient;
+        
+        if (supabase) {
+            try {
+                // Try to get current user
+                const { data, error } = await supabase.auth.getUser();
+                
+                if (error || !data.user) {
+                    // Create anonymous session
+                    console.log('No authenticated user, creating anonymous session');
+                    const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
+                    
+                    if (signInError) {
+                        console.error('Error creating anonymous session:', signInError);
+                        loadLocalConversations();
+                        return;
+                    }
+                }
+                
+                // Now we should have a user (anonymous or authenticated)
+                const { data: userData } = await supabase.auth.getUser();
+                const userId = userData.user?.id || 'anonymous';
+                
+                // Get conversations from Supabase
+                const { data: conversationsData, error: conversationsError } = await supabase
+                    .from('conversations')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('updated_at', { ascending: false });
+                
+                if (conversationsError) {
+                    console.error('Error fetching conversations:', conversationsError);
+                    loadLocalConversations();
+                    return;
+                }
+                
+                if (conversationsData && conversationsData.length > 0) {
+                    renderConversationHistory(conversationsData);
+                } else {
+                    // No conversations in Supabase, try localStorage
+                    loadLocalConversations();
+                }
+            } catch (error) {
+                console.error('Error in Supabase authentication flow:', error);
                 loadLocalConversations();
             }
         } else {

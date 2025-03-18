@@ -192,6 +192,7 @@
                         <span class="text-sm text-gray-600">Temperature:</span>
                         <input type="range" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7" class="w-24">
                         <span id="temperatureValue" class="text-sm">0.7</span>
+                        <span class="text-sm text-gray-600">Close to 0 = straightforward. Closer to 1 = responses can vary wildly</span>
                     </div>
                 </div>
             </div>
@@ -345,11 +346,27 @@
         </div>
     </div>
 
+    <!-- Fixed Supabase Initialization -->
     <script>
         // Initialize Supabase with credentials injected by the server
         const supabaseUrl = '__SUPABASE_URL__';
         const supabaseKey = '__SUPABASE_KEY__';
-        const supabase = supabaseKey ? supabase.createClient(supabaseUrl, supabaseKey) : null;
+        let supabaseClient = null;
+        
+        if (supabaseUrl && supabaseKey && supabaseUrl !== '__SUPABASE_URL__' && supabaseKey !== '__SUPABASE_KEY__') {
+            try {
+                // Access the global supabase object from the imported library
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+            }
+        } else {
+            console.log('Supabase credentials not available, will use localStorage for storage');
+        }
+        
+        // Make supabase client available globally
+        window.supabaseClient = supabaseClient;
     </script>
     <script src="/js/index.js"></script>
 </body>
