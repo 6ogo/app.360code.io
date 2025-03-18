@@ -1,3 +1,6 @@
+// API Configuration - Change this to match your actual API URL
+const API_BASE_URL = "https://app.360code.io"; // Change this to your actual API URL
+
 // Conversation management
 interface Message {
     role: 'user' | 'assistant';
@@ -234,13 +237,12 @@ async function generateCode(): Promise<void> {
         currentConversation.model = model;
         currentConversation.temperature = temperature;
         
-        // Get current URL path 
-        const currentPath = window.location.pathname;
+        // Generate response using the appropriate API URL
+        // For local development, use relative path. For production, use the full URL.
+        const apiUrl = API_BASE_URL ? `${API_BASE_URL}/api/generate` : '/generate';
         
-        // Build the correct API URL (using same origin to avoid CORS issues)
-        const apiUrl = `${window.location.origin}/generate`;
+        console.log(`Sending request to: ${apiUrl}`);
         
-        // Generate response
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

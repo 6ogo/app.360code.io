@@ -1,26 +1,17 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // API Configuration - Change this to match your actual API URL
-const API_BASE_URL = "https://app.360code.io"; // Change this to your actual API URL
-
+const API_BASE_URL = ""; // Leave empty to use relative paths, or set to your API domain
 // Conversation management
-interface Message {
-    role: 'user' | 'assistant';
-    content: string;
-}
-
-interface Conversation {
-    id: string;
-    title: string;
-    messages: Message[];
-    code: string | null;
-    schema: string | null;
-    env: string | null;
-    connection: string | null;
-    model: string;
-    temperature: number;
-    updated_at?: string;
-}
-
-let currentConversation: Conversation = {
+let currentConversation = {
     id: generateId(),
     title: 'New Project',
     messages: [],
@@ -31,62 +22,55 @@ let currentConversation: Conversation = {
     model: 'qwen-2.5-coder-32b',
     temperature: 0.7
 };
-
 // DOM Elements
-const sidebar = document.getElementById('sidebar') as HTMLElement;
-const sidebarToggle = document.getElementById('sidebarToggle') as HTMLElement;
-const closeSidebar = document.getElementById('closeSidebar') as HTMLElement;
-const newChatButton = document.getElementById('newChatButton') as HTMLElement;
-const projectHistory = document.getElementById('projectHistory') as HTMLElement;
-const noHistoryMessage = document.getElementById('noHistoryMessage') as HTMLElement;
-const chatMessages = document.getElementById('chatMessages') as HTMLElement;
-const promptElement = document.getElementById('prompt') as HTMLTextAreaElement;
-const sendButton = document.getElementById('sendButton') as HTMLElement;
-const temperatureSlider = document.getElementById('temperatureSlider') as HTMLInputElement;
-const temperatureValue = document.getElementById('temperatureValue') as HTMLElement;
-const modelSelect = document.getElementById('modelSelect') as HTMLSelectElement;
-const projectViewModal = document.getElementById('projectViewModal') as HTMLElement;
-const closeModalButton = document.getElementById('closeModalButton') as HTMLElement;
-const codeContent = document.getElementById('codeContent') as HTMLElement;
-const schemaSetup = document.getElementById('schemaSetup') as HTMLElement;
-const envSetup = document.getElementById('envSetup') as HTMLElement;
-const connectionCode = document.getElementById('connectionCode') as HTMLElement;
-const copyCodeButton = document.getElementById('copyCodeButton') as HTMLElement;
-const copySchemaButton = document.getElementById('copySchemaButton') as HTMLElement;
-const copyEnvButton = document.getElementById('copyEnvButton') as HTMLElement;
-const copyConnectionButton = document.getElementById('copyConnectionButton') as HTMLElement;
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const closeSidebar = document.getElementById('closeSidebar');
+const newChatButton = document.getElementById('newChatButton');
+const projectHistory = document.getElementById('projectHistory');
+const noHistoryMessage = document.getElementById('noHistoryMessage');
+const chatMessages = document.getElementById('chatMessages');
+const promptElement = document.getElementById('prompt');
+const sendButton = document.getElementById('sendButton');
+const temperatureSlider = document.getElementById('temperatureSlider');
+const temperatureValue = document.getElementById('temperatureValue');
+const modelSelect = document.getElementById('modelSelect');
+const projectViewModal = document.getElementById('projectViewModal');
+const closeModalButton = document.getElementById('closeModalButton');
+const codeContent = document.getElementById('codeContent');
+const schemaSetup = document.getElementById('schemaSetup');
+const envSetup = document.getElementById('envSetup');
+const connectionCode = document.getElementById('connectionCode');
+const copyCodeButton = document.getElementById('copyCodeButton');
+const copySchemaButton = document.getElementById('copySchemaButton');
+const copyEnvButton = document.getElementById('copyEnvButton');
+const copyConnectionButton = document.getElementById('copyConnectionButton');
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
-
 // Event Listeners
 window.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
-
 if (sidebarToggle) {
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
     });
 }
-
 if (closeSidebar) {
     closeSidebar.addEventListener('click', () => {
         sidebar.classList.remove('open');
     });
 }
-
 if (newChatButton) {
     newChatButton.addEventListener('click', () => {
         startNewChat();
     });
 }
-
 if (temperatureSlider) {
     temperatureSlider.addEventListener('input', () => {
         temperatureValue.textContent = temperatureSlider.value;
     });
 }
-
 if (promptElement) {
     promptElement.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -95,49 +79,40 @@ if (promptElement) {
         }
     });
 }
-
 if (sendButton) {
     sendButton.addEventListener('click', generateCode);
 }
-
 if (closeModalButton) {
     closeModalButton.addEventListener('click', () => {
         projectViewModal.classList.add('hidden');
     });
 }
-
 if (copyCodeButton) {
     copyCodeButton.addEventListener('click', () => {
         copyTextToClipboard(codeContent.textContent || '');
     });
 }
-
 if (copySchemaButton) {
     copySchemaButton.addEventListener('click', () => {
         copyTextToClipboard(schemaSetup.textContent || '');
     });
 }
-
 if (copyEnvButton) {
     copyEnvButton.addEventListener('click', () => {
         copyTextToClipboard(envSetup.textContent || '');
     });
 }
-
 if (copyConnectionButton) {
     copyConnectionButton.addEventListener('click', () => {
         copyTextToClipboard(connectionCode.textContent || '');
     });
 }
-
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const tabName = tab.getAttribute('data-tab') || '';
-        
         // Update active tab
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        
         // Show selected content
         tabContents.forEach(content => {
             content.classList.add('hidden');
@@ -147,21 +122,17 @@ tabs.forEach(tab => {
         });
     });
 });
-
 // Main functionality
-function initializeApp(): void {
+function initializeApp() {
     loadConversationHistory();
 }
-
-function startNewChat(): void {
+function startNewChat() {
     // Save current conversation if it has messages
     if (currentConversation.messages.length > 0) {
         saveConversation(currentConversation);
     }
-    
     // Clear chat
     chatMessages.innerHTML = '';
-    
     // Add welcome message
     const welcomeMessage = document.createElement('div');
     welcomeMessage.className = 'ai-message message';
@@ -176,7 +147,6 @@ function startNewChat(): void {
         <p class="mt-2">Your projects can include Supabase integration for backend functionality.</p>
     `;
     chatMessages.appendChild(welcomeMessage);
-    
     // Reset current conversation
     currentConversation = {
         id: generateId(),
@@ -189,172 +159,139 @@ function startNewChat(): void {
         model: modelSelect.value,
         temperature: parseFloat(temperatureSlider.value)
     };
-    
     // Clear input
     promptElement.value = '';
     sidebar.classList.remove('open');
 }
-
-async function generateCode(): Promise<void> {
-    const message = promptElement.value.trim();
-    if (!message) {
-        alert('Please enter a prompt.');
-        return;
-    }
-    
-    // Disable input during processing
-    promptElement.disabled = true;
-    sendButton.classList.add('disabled');
-    
-    // Add user message to UI
-    addMessageToUI('user', message);
-    
-    // Add to conversation history
-    currentConversation.messages.push({
-        role: 'user',
-        content: message
-    });
-    
-    // Set conversation title based on first message
-    if (currentConversation.messages.length === 1) {
-        currentConversation.title = message.length > 30 
-            ? message.substring(0, 30) + '...' 
-            : message;
-    }
-    
-    // Clear input
-    promptElement.value = '';
-    
-    // Add AI thinking indicator
-    const aiMessageElement = addMessageToUI('assistant', '<div class="spinner"></div>');
-    
-    try {
-        // Get current settings
-        const model = modelSelect.value;
-        const temperature = parseFloat(temperatureSlider.value);
-        
-        // Update conversation settings
-        currentConversation.model = model;
-        currentConversation.temperature = temperature;
-        
-        // Generate response using the appropriate API URL
-        // For local development, use relative path. For production, use the full URL.
-        const apiUrl = API_BASE_URL ? `${API_BASE_URL}/api/generate` : '/generate';
-        
-        console.log(`Sending request to: ${apiUrl}`);
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                prompt: message,
-                model: model,
-                temperature: temperature
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+function generateCode() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const message = promptElement.value.trim();
+        if (!message) {
+            alert('Please enter a prompt.');
+            return;
         }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON. Make sure your server is properly set up.');
-        }
-        
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        
-        // Process response
-        const aiMessage = data.code;
-        
+        // Disable input during processing
+        promptElement.disabled = true;
+        sendButton.classList.add('disabled');
+        // Add user message to UI
+        addMessageToUI('user', message);
         // Add to conversation history
         currentConversation.messages.push({
-            role: 'assistant',
-            content: aiMessage
+            role: 'user',
+            content: message
         });
-        
-        // Extract code blocks
-        const codeBlocks = extractCodeBlocks(aiMessage);
-        
-        if (codeBlocks.length > 0) {
-            // Set the main code
-            currentConversation.code = codeBlocks[0].code;
+        // Set conversation title based on first message
+        if (currentConversation.messages.length === 1) {
+            currentConversation.title = message.length > 30
+                ? message.substring(0, 30) + '...'
+                : message;
+        }
+        // Clear input
+        promptElement.value = '';
+        // Add AI thinking indicator
+        const aiMessageElement = addMessageToUI('assistant', '<div class="spinner"></div>');
+        try {
+            // Get current settings
+            const model = modelSelect.value;
+            const temperature = parseFloat(temperatureSlider.value);
+            // Update conversation settings
+            currentConversation.model = model;
+            currentConversation.temperature = temperature;
             
-            // Set other code blocks if available
-            if (codeBlocks.length > 1) {
-                // Look for SQL schema
-                const sqlBlock = codeBlocks.find(block => 
-                    block.language.toLowerCase() === 'sql' || 
-                    block.code.toLowerCase().includes('create table'));
-                
-                if (sqlBlock) {
-                    currentConversation.schema = sqlBlock.code;
-                }
-                
-                // Look for environment variables
-                const envBlock = codeBlocks.find(block => 
-                    block.code.includes('SUPABASE_URL') || 
-                    block.code.includes('.env'));
-                
-                if (envBlock) {
-                    currentConversation.env = envBlock.code;
-                }
-                
-                // Look for connection code
-                const connectionBlock = codeBlocks.find(block => 
-                    block.code.includes('createClient') || 
-                    block.code.includes('supabase'));
-                
-                if (connectionBlock) {
-                    currentConversation.connection = connectionBlock.code;
-                }
+            // Generate response using the appropriate API URL
+            const apiUrl = API_BASE_URL ? `${API_BASE_URL}/generate` : '/generate';
+            console.log(`Sending request to: ${apiUrl}`);
+            
+            const response = yield fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: message,
+                    model: model,
+                    temperature: temperature
+                })
+            });
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
             }
-            
-            // If we don't have specific blocks, generate them
-            if (!currentConversation.schema) {
-                currentConversation.schema = generateSchemaFromCode(currentConversation.code);
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON. Make sure your server is properly set up.');
             }
-            
-            if (!currentConversation.env) {
-                currentConversation.env = 
-`NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+            const data = yield response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // Process response
+            const aiMessage = data.code;
+            // Add to conversation history
+            currentConversation.messages.push({
+                role: 'assistant',
+                content: aiMessage
+            });
+            // Extract code blocks
+            const codeBlocks = extractCodeBlocks(aiMessage);
+            if (codeBlocks.length > 0) {
+                // Set the main code
+                currentConversation.code = codeBlocks[0].code;
+                // Set other code blocks if available
+                if (codeBlocks.length > 1) {
+                    // Look for SQL schema
+                    const sqlBlock = codeBlocks.find(block => block.language.toLowerCase() === 'sql' ||
+                        block.code.toLowerCase().includes('create table'));
+                    if (sqlBlock) {
+                        currentConversation.schema = sqlBlock.code;
+                    }
+                    // Look for environment variables
+                    const envBlock = codeBlocks.find(block => block.code.includes('SUPABASE_URL') ||
+                        block.code.includes('.env'));
+                    if (envBlock) {
+                        currentConversation.env = envBlock.code;
+                    }
+                    // Look for connection code
+                    const connectionBlock = codeBlocks.find(block => block.code.includes('createClient') ||
+                        block.code.includes('supabase'));
+                    if (connectionBlock) {
+                        currentConversation.connection = connectionBlock.code;
+                    }
+                }
+                // If we don't have specific blocks, generate them
+                if (!currentConversation.schema) {
+                    currentConversation.schema = generateSchemaFromCode(currentConversation.code);
+                }
+                if (!currentConversation.env) {
+                    currentConversation.env =
+                        `NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`;
-            }
-            
-            if (!currentConversation.connection) {
-                currentConversation.connection = 
-`import { createClient } from '@supabase/supabase-js'
+                }
+                if (!currentConversation.connection) {
+                    currentConversation.connection =
+                        `import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseKey)`;
+                }
             }
+            // Update the AI message in the UI
+            updateAIMessage(aiMessageElement, aiMessage);
+            // Save conversation
+            saveConversation(currentConversation);
+            // Update the history sidebar
+            loadConversationHistory();
         }
-        
-        // Update the AI message in the UI
-        updateAIMessage(aiMessageElement, aiMessage);
-        
-        // Save conversation
-        saveConversation(currentConversation);
-        
-        // Update the history sidebar
-        loadConversationHistory();
-        
-    } catch (error) {
-        console.error('Error:', error);
-        updateAIMessage(aiMessageElement, `Error: ${(error as Error).message}. Please make sure your server is running and properly configured.`);
-    } finally {
-        // Re-enable input
-        promptElement.disabled = false;
-        sendButton.classList.remove('disabled');
-    }
+        catch (error) {
+            console.error('Error:', error);
+            updateAIMessage(aiMessageElement, `Error: ${error.message}. Please make sure your server is running and properly configured.`);
+        }
+        finally {
+            // Re-enable input
+            promptElement.disabled = false;
+            sendButton.classList.remove('disabled');
+        }
+    });
 }
-
-function addMessageToUI(role: 'user' | 'assistant', content: string): HTMLElement {
+function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
     messageElement.className = role === 'user' ? 'user-message message' : 'ai-message message';
     messageElement.innerHTML = content;
@@ -362,12 +299,10 @@ function addMessageToUI(role: 'user' | 'assistant', content: string): HTMLElemen
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return messageElement;
 }
-
-function updateAIMessage(messageElement: HTMLElement, content: string): void {
+function updateAIMessage(messageElement, content) {
     // Process content to handle code blocks
     const processedContent = processMessageContent(content);
     messageElement.innerHTML = processedContent;
-    
     // Add copy buttons to code blocks
     const codeBlocks = messageElement.querySelectorAll('.code-block');
     codeBlocks.forEach(block => {
@@ -379,7 +314,6 @@ function updateAIMessage(messageElement: HTMLElement, content: string): void {
         });
         block.appendChild(copyBtn);
     });
-    
     // Add view project button if code was generated
     if (currentConversation.code) {
         const viewProjectBtn = document.createElement('button');
@@ -391,36 +325,26 @@ function updateAIMessage(messageElement: HTMLElement, content: string): void {
         messageElement.appendChild(viewProjectBtn);
     }
 }
-
-function processMessageContent(content: string): string {
+function processMessageContent(content) {
     // Replace code blocks with styled divs
     return content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
         const lang = language || 'plaintext';
         return `<div class="code-block" data-language="${lang}">${escapeHtml(code.trim())}</div>`;
     }).replace(/\n/g, '<br>');
 }
-
-interface CodeBlock {
-    language: string;
-    code: string;
-}
-
-function extractCodeBlocks(content: string): CodeBlock[] {
+function extractCodeBlocks(content) {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const codeBlocks: CodeBlock[] = [];
+    const codeBlocks = [];
     let match;
-    
     while ((match = codeBlockRegex.exec(content)) !== null) {
         codeBlocks.push({
             language: match[1] || 'plaintext',
             code: match[2].trim()
         });
     }
-    
     return codeBlocks;
 }
-
-function generateSchemaFromCode(code: string): string {
+function generateSchemaFromCode(code) {
     // Default schema with users and sessions table
     return `-- Create a table for users
 CREATE TABLE users (
@@ -456,73 +380,63 @@ CREATE POLICY "Users can update their own data" ON app_data
 CREATE POLICY "Users can view their own data" ON app_data
   FOR SELECT USING (auth.uid() = user_id);`;
 }
-
-function openProjectModal(conversation: Conversation): void {
+function openProjectModal(conversation) {
     // Set project title
-    const modalProjectTitle = document.getElementById('modalProjectTitle') as HTMLElement;
+    const modalProjectTitle = document.getElementById('modalProjectTitle');
     modalProjectTitle.textContent = conversation.title;
-    
     // Set code content
     codeContent.textContent = conversation.code || 'No code available';
-    
     // Set schema setup
     schemaSetup.textContent = conversation.schema || 'No schema available';
-    
     // Set environment setup
     envSetup.textContent = conversation.env || 'No environment variables available';
-    
     // Set connection code
     connectionCode.textContent = conversation.connection || 'No connection code available';
-    
     // Reset to code tab
     tabs.forEach(tab => tab.classList.remove('active'));
-    document.querySelector('[data-tab="code"]')?.classList.add('active');
-    
-    tabContents.forEach(content => content.classList.add('hidden'));
-    document.getElementById('codeTab')?.classList.remove('hidden');
-    
+    document.querySelector('[data-tab="code"]').classList.add('active');
+    tabContents.forEach(content => {
+        content.classList.add('hidden');
+        if (content.id === 'codeTab') {
+            content.classList.remove('hidden');
+        }
+    });
     // Show modal
     projectViewModal.classList.remove('hidden');
 }
-
 // Utility Functions
-function generateId(): string {
+function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
-
-function escapeHtml(html: string): string {
+function escapeHtml(html) {
     const div = document.createElement('div');
     div.textContent = html;
     return div.innerHTML;
 }
-
-function copyTextToClipboard(text: string): void {
+function copyTextToClipboard(text) {
     navigator.clipboard.writeText(text)
         .then(() => {
-            alert('Copied to clipboard!');
-        })
+        alert('Copied to clipboard!');
+    })
         .catch(err => {
-            console.error('Failed to copy: ', err);
-        });
+        console.error('Failed to copy: ', err);
+    });
 }
-
 // Storage Functions
-async function saveConversation(conversation: Conversation): Promise<any> {
-    try {
-        // Check if Supabase is available (using the global variable from index.html)
-        const supabase = (window as any).supabaseClient;
-        
-        if (supabase) {
-            try {
-                // Get current user
-                const { data: { user } } = await supabase.auth.getUser();
-                
-                const userId = user ? user.id : 'anonymous';
-                
-                // Save to Supabase
-                const { data, error } = await supabase
-                    .from('conversations')
-                    .upsert([
+function saveConversation(conversation) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Check if Supabase is available (using the global variable from index.html)
+            const supabase = window.supabaseClient;
+            if (supabase) {
+                try {
+                    // Get current user
+                    const { data: { user } } = yield supabase.auth.getUser();
+                    const userId = user ? user.id : 'anonymous';
+                    // Save to Supabase
+                    const { data, error } = yield supabase
+                        .from('conversations')
+                        .upsert([
                         {
                             id: conversation.id,
                             user_id: userId,
@@ -538,122 +452,119 @@ async function saveConversation(conversation: Conversation): Promise<any> {
                             updated_at: new Date().toISOString()
                         }
                     ])
-                    .select();
-                
-                if (error) throw error;
-                
-                return data;
-            } catch (error) {
-                console.error('Supabase error:', error);
+                        .select();
+                    if (error)
+                        throw error;
+                    return data;
+                }
+                catch (error) {
+                    console.error('Supabase error:', error);
+                    // Fall back to localStorage
+                    localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
+                }
+            }
+            else {
                 // Fall back to localStorage
                 localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
             }
-        } else {
-            // Fall back to localStorage
+        }
+        catch (error) {
+            console.error('Error saving conversation:', error);
+            // Try to save locally as fallback
             localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
         }
-    } catch (error) {
-        console.error('Error saving conversation:', error);
-        // Try to save locally as fallback
-        localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
-    }
+    });
 }
-
-async function loadConversationHistory(): Promise<void> {
-    try {
-        // Check if Supabase is available (using the global variable from index.html)
-        const supabase = (window as any).supabaseClient;
-        
-        if (supabase) {
-            try {
-                // Try to get current user
-                const { data, error } = await supabase.auth.getUser();
-                
-                if (error || !data.user) {
-                    // Create anonymous session
-                    console.log('No authenticated user, creating anonymous session');
-                    const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
-                    
-                    if (signInError) {
-                        console.error('Error creating anonymous session:', signInError);
+function loadConversationHistory() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Check if Supabase is available (using the global variable from index.html)
+            const supabase = window.supabaseClient;
+            if (supabase) {
+                try {
+                    // Try to get current user
+                    const { data, error } = yield supabase.auth.getUser();
+                    if (error || !data.user) {
+                        // Create anonymous session
+                        console.log('No authenticated user, creating anonymous session');
+                        const { data: signInData, error: signInError } = yield supabase.auth.signInAnonymously();
+                        if (signInError) {
+                            console.error('Error creating anonymous session:', signInError);
+                            loadLocalConversations();
+                            return;
+                        }
+                    }
+                    // Now we should have a user (anonymous or authenticated)
+                    const { data: userData } = yield supabase.auth.getUser();
+                    const userId = userData.user ? userData.user.id : 'anonymous';
+                    // Get conversations from Supabase
+                    const { data: conversationsData, error: conversationsError } = yield supabase
+                        .from('conversations')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .order('updated_at', { ascending: false });
+                    if (conversationsError) {
+                        console.error('Error fetching conversations:', conversationsError);
                         loadLocalConversations();
                         return;
                     }
+                    if (conversationsData && conversationsData.length > 0) {
+                        renderConversationHistory(conversationsData);
+                    }
+                    else {
+                        // No conversations in Supabase, try localStorage
+                        loadLocalConversations();
+                    }
                 }
-                
-                // Now we should have a user (anonymous or authenticated)
-                const { data: userData } = await supabase.auth.getUser();
-                const userId = userData.user?.id || 'anonymous';
-                
-                // Get conversations from Supabase
-                const { data: conversationsData, error: conversationsError } = await supabase
-                    .from('conversations')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .order('updated_at', { ascending: false });
-                
-                if (conversationsError) {
-                    console.error('Error fetching conversations:', conversationsError);
-                    loadLocalConversations();
-                    return;
-                }
-                
-                if (conversationsData && conversationsData.length > 0) {
-                    renderConversationHistory(conversationsData);
-                } else {
-                    // No conversations in Supabase, try localStorage
+                catch (error) {
+                    console.error('Error in Supabase authentication flow:', error);
                     loadLocalConversations();
                 }
-            } catch (error) {
-                console.error('Error in Supabase authentication flow:', error);
+            }
+            else {
+                // Supabase not available, load from localStorage
                 loadLocalConversations();
             }
-        } else {
-            // Supabase not available, load from localStorage
+        }
+        catch (error) {
+            console.error('Error loading conversations:', error);
+            // Try to load from localStorage as fallback
             loadLocalConversations();
         }
-    } catch (error) {
-        console.error('Error loading conversations:', error);
-        // Try to load from localStorage as fallback
-        loadLocalConversations();
-    }
+    });
 }
-
-function loadLocalConversations(): void {
-    const conversations: Conversation[] = [];
-    
+function loadLocalConversations() {
+    const conversations = [];
     // Get all items from localStorage
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('conversation_')) {
             try {
-                const conversation = JSON.parse(localStorage.getItem(key) || '{}') as Conversation;
+                const conversation = JSON.parse(localStorage.getItem(key) || '{}');
                 conversations.push(conversation);
-            } catch (e) {
+            }
+            catch (e) {
                 console.error('Error parsing conversation from localStorage:', e);
             }
         }
     }
-    
     if (conversations.length > 0) {
         // Sort by latest first (assuming id is timestamp-based)
         conversations.sort((a, b) => parseInt(b.id, 36) - parseInt(a.id, 36));
         renderConversationHistory(conversations);
-    } else {
+    }
+    else {
         // No conversations anywhere
         projectHistory.innerHTML = '';
         projectHistory.appendChild(noHistoryMessage);
     }
 }
-
-function renderConversationHistory(conversations: Conversation[]): void {
+function renderConversationHistory(conversations) {
     projectHistory.innerHTML = '';
-    
     if (conversations.length === 0) {
         projectHistory.appendChild(noHistoryMessage);
         return;
     }
-    
     conversations.forEach(conversation => {
         const historyItem = document.createElement('div');
         historyItem.className = 'project-card bg-white rounded-md p-3 border border-gray-200 hover:bg-gray-50 cursor-pointer';
@@ -667,40 +578,36 @@ function renderConversationHistory(conversations: Conversation[]): void {
                 </div>
             </div>
         `;
-        
         historyItem.addEventListener('click', () => {
             loadConversation(conversation);
             sidebar.classList.remove('open');
         });
-        
         projectHistory.appendChild(historyItem);
     });
 }
-
-async function loadConversation(conversation: Conversation): Promise<void> {
-    // Save current conversation first
-    if (currentConversation.messages.length > 0) {
-        await saveConversation(currentConversation);
-    }
-    
-    // Set current conversation
-    currentConversation = conversation;
-    
-    // Clear chat area
-    chatMessages.innerHTML = '';
-    
-    // Render messages
-    conversation.messages.forEach(message => {
-        if (message.role === 'user') {
-            addMessageToUI('user', message.content);
-        } else if (message.role === 'assistant') {
-            const messageElement = addMessageToUI('assistant', '');
-            updateAIMessage(messageElement, message.content);
+function loadConversation(conversation) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Save current conversation first
+        if (currentConversation.messages.length > 0) {
+            yield saveConversation(currentConversation);
         }
+        // Set current conversation
+        currentConversation = conversation;
+        // Clear chat area
+        chatMessages.innerHTML = '';
+        // Render messages
+        conversation.messages.forEach(message => {
+            if (message.role === 'user') {
+                addMessageToUI('user', message.content);
+            }
+            else if (message.role === 'assistant') {
+                const messageElement = addMessageToUI('assistant', '');
+                updateAIMessage(messageElement, message.content);
+            }
+        });
+        // Update UI elements
+        modelSelect.value = conversation.model || modelSelect.value;
+        temperatureSlider.value = conversation.temperature ? conversation.temperature.toString() : temperatureSlider.value;
+        temperatureValue.textContent = temperatureSlider.value;
     });
-    
-    // Update UI elements
-    modelSelect.value = conversation.model || modelSelect.value;
-    temperatureSlider.value = conversation.temperature ? conversation.temperature.toString() : temperatureSlider.value;
-    temperatureValue.textContent = temperatureSlider.value;
 }
