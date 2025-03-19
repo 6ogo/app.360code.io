@@ -102,7 +102,7 @@ if (sendButton) {
 
 if (closeModalButton) {
     closeModalButton.addEventListener('click', () => {
-        projectViewModal.classList.add('hidden');
+        projectViewModal.classList.remove('visible');
     });
 }
 
@@ -383,7 +383,7 @@ function updateAIMessage(messageElement: HTMLElement, content: string): void {
     // Add view project button if code was generated
     if (currentConversation.code) {
         const viewProjectBtn = document.createElement('button');
-        viewProjectBtn.className = 'mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-200';
+        viewProjectBtn.className = 'view-project-btn';
         viewProjectBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>View Complete Project';
         viewProjectBtn.addEventListener('click', () => {
             openProjectModal(currentConversation);
@@ -482,7 +482,7 @@ function openProjectModal(conversation: Conversation): void {
     document.getElementById('codeTab')?.classList.remove('hidden');
     
     // Show modal
-    projectViewModal.classList.remove('hidden');
+    projectViewModal.classList.add('visible');
 }
 
 // Utility Functions

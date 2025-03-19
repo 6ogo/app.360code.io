@@ -22,9 +22,9 @@ console.log('- GROQ_API_KEY is ' + (process.env.GROQ_API_KEY ? 'set' : 'NOT SET'
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Initialize Supabase client if credentials are available
-let supabase = null;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
     try {
@@ -57,8 +57,8 @@ function injectCredentialsIntoHTML(htmlContent) {
     modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${supabaseUrl || ''}'`);
     modifiedHtml = modifiedHtml.replace(/'__SUPABASE_KEY__'/g, `'${supabaseKey || ''}'`);
     return modifiedHtml;
-}
-
+  }
+    
 // Serve static files EXCEPT for index.html (we'll handle that separately)
 app.use(express.static(path.join(__dirname, 'public'), {
     index: false  // Don't auto-serve index.html
