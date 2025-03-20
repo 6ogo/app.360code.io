@@ -35,6 +35,7 @@ const groqClient = new GroqSDK({ apiKey: process.env.GROQ_API_KEY });
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
 let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
@@ -59,9 +60,13 @@ if (supabaseUrl && supabaseKey) {
 
 // Templating function to inject environment variables
 function injectEnvVariables(html) {
+    // Wrap values in quotes to ensure they're properly formatted as JavaScript strings
+    const supabaseUrl = process.env.SUPABASE_URL ? `"${process.env.SUPABASE_URL}"` : '""';
+    const supabaseKey = process.env.SUPABASE_ANON_KEY ? `"${process.env.SUPABASE_ANON_KEY}"` : '""';
+    
     return html
-        .replace('<%= process.env.SUPABASE_URL %>', process.env.SUPABASE_URL || '')
-        .replace('<%= process.env.SUPABASE_ANON_KEY %>', process.env.SUPABASE_ANON_KEY || '');
+        .replace(/\"REPLACE_SUPABASE_URL\"/g, process.env.SUPABASE_URL ? `"${process.env.SUPABASE_URL}"` : '""')
+        .replace(/\"REPLACE_SUPABASE_KEY\"/g, process.env.SUPABASE_ANON_KEY ? `"${process.env.SUPABASE_ANON_KEY}"` : '""');
 }
 
 // Auth routes
@@ -123,6 +128,35 @@ app.get('/debug', (req, res) => {
     res.json(debug);
 });
 
+app.get('/debug-supabase', (req, res) => {
+    // Mask the keys for security while still showing partial values for debugging
+    const maskSecret = (secret) => {
+        if (!secret) return 'NOT SET';
+        if (secret.length <= 8) return '****';
+        return secret.substring(0, 4) + '...' + secret.substring(secret.length - 4);
+    };
+
+    const debug = {
+        supabase: {
+            url: process.env.SUPABASE_URL || 'NOT SET',
+            keyMasked: maskSecret(process.env.SUPABASE_ANON_KEY),
+            isUrlValid: process.env.SUPABASE_URL ? 
+                process.env.SUPABASE_URL.startsWith('https://') : false,
+            injection: {
+                placeholder: '<%= process.env.SUPABASE_URL %>',
+                replacedWith: injectEnvVariables('<%= process.env.SUPABASE_URL %>')
+            }
+        },
+        html: {
+            // Sample of how the injection would work
+            sample: injectEnvVariables(`const supabaseUrl = "REPLACE_SUPABASE_URL";
+const supabaseKey = "REPLACE_SUPABASE_KEY";`)
+        }
+    };
+    
+    res.json(debug);
+});
+
 // Generate code endpoint
 app.post('/generate', async (req, res) => {
     try {
@@ -133,7 +167,7 @@ app.post('/generate', async (req, res) => {
         const completion = await groqClient.chat.completions.create({
             model: model || 'mixtral-8x7b-32768',
             messages: [
-                { role: 'system', content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' },
+                { role: 'system', content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration if user requests it. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' },
                 { role: 'user', content: prompt }
             ],
             temperature: parseFloat(temperature) || 0.7,

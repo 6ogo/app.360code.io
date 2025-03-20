@@ -4,6 +4,9 @@
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Supabase Client
+    initializeSupabase();
+
     // Initialize Supabase Auth Listener
     initializeAuthListener();
 
@@ -121,10 +124,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Initialize Supabase Client
+function initializeSupabase() {
+    // Check if the client is already initialized
+    if (window.supabaseClient) {
+        return;
+    }
+    
+    try {
+        // Get credentials from the window object or inline vars
+        const supabaseUrl = window.SUPABASE_URL || "REPLACE_SUPABASE_URL";
+        const supabaseKey = window.SUPABASE_ANON_KEY || "REPLACE_SUPABASE_KEY";
+        
+        // Only initialize if we have real values
+        if (supabaseUrl && supabaseUrl !== "REPLACE_SUPABASE_URL" && 
+            supabaseKey && supabaseKey !== "REPLACE_SUPABASE_KEY") {
+            console.log('Initializing Supabase client');
+            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        } else {
+            console.error('Missing Supabase credentials for initialization');
+        }
+    } catch (error) {
+        console.error('Error initializing Supabase client:', error);
+    }
+}
+
 // Initialize Auth Listener
 function initializeAuthListener() {
-    const supabase = window.supabaseClient;
-    if (!supabase) {
+    const supabaseClient = window.supabaseClient;
+    if (!supabaseClient) {
         console.error('Supabase client not initialized');
         return;
     }
@@ -133,7 +161,7 @@ function initializeAuthListener() {
     checkSession();
     
     // Set up auth state change listener
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state change:', event);
         
         if (event === 'SIGNED_IN') {
@@ -142,6 +170,7 @@ function initializeAuthListener() {
             redirectIfNeeded(true);
         } else if (event === 'SIGNED_OUT') {
             currentUser = null;
+            updateUIWithUser(null);
             redirectIfNeeded(false);
         } else if (event === 'USER_UPDATED') {
             currentUser = session.user;
@@ -153,24 +182,26 @@ function initializeAuthListener() {
 // Check current session
 async function checkSession() {
     try {
-        const supabase = window.supabaseClient;
-        if (!supabase) {
+        const supabaseClient = window.supabaseClient;
+        if (!supabaseClient) {
             console.error('Supabase client not initialized');
             return;
         }
         
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
         
-        if (data.session) {
+        if (data && data.session) {
             currentUser = data.session.user;
             updateUIWithUser(currentUser);
             redirectIfNeeded(true);
         } else {
+            updateUIWithUser(null);
             redirectIfNeeded(false);
         }
     } catch (error) {
         console.error('Error checking session:', error);
+        updateUIWithUser(null);
         redirectIfNeeded(false);
     }
 }
@@ -179,6 +210,7 @@ async function checkSession() {
 function redirectIfNeeded(isAuthenticated) {
     const isAuthPage = window.location.pathname.includes('/auth');
     
+    // Note: Only redirect if necessary to prevent infinite loops
     if (isAuthenticated && isAuthPage) {
         // User is authenticated and on auth page, redirect to app
         window.location.href = '/';
@@ -191,8 +223,8 @@ function redirectIfNeeded(isAuthenticated) {
 // Sign in with email and password
 async function signInWithEmail(email, password) {
     try {
-        const supabase = window.supabaseClient;
-        if (!supabase) {
+        const supabaseClient = window.supabaseClient;
+        if (!supabaseClient) {
             showAlert('Supabase client not initialized');
             return;
         }
@@ -200,22 +232,29 @@ async function signInWithEmail(email, password) {
         const signinButton = document.querySelector('#signinForm button[type="submit"]');
         if (signinButton) {
             signinButton.disabled = true;
-            signinButton.innerHTML = 'Signing in...';
+            signinButton.innerHTML = '<div class="spinner"></div> Signing in...';
         }
         
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password
         });
         
         if (error) throw error;
         
-        // No need to redirect here, as the auth listener will handle it
-        showAlert('Signed in successfully!', 'success');
+        // Update currentUser
+        currentUser = data.user;
         
+        // Show success message
+        showAlert('Signed in successfully', 'success');
+        
+        // Redirect to main app
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1000);
     } catch (error) {
         console.error('Error signing in:', error);
-        showAlert(`Sign in failed: ${error.message}`);
+        showAlert(error.message || 'Failed to sign in');
     } finally {
         const signinButton = document.querySelector('#signinForm button[type="submit"]');
         if (signinButton) {
@@ -228,8 +267,8 @@ async function signInWithEmail(email, password) {
 // Sign up with email and password
 async function signUpWithEmail(email, password) {
     try {
-        const supabase = window.supabaseClient;
-        if (!supabase) {
+        const supabaseClient = window.supabaseClient;
+        if (!supabaseClient) {
             showAlert('Supabase client not initialized');
             return;
         }
@@ -237,27 +276,34 @@ async function signUpWithEmail(email, password) {
         const signupButton = document.querySelector('#signupForm button[type="submit"]');
         if (signupButton) {
             signupButton.disabled = true;
-            signupButton.innerHTML = 'Signing up...';
+            signupButton.innerHTML = '<div class="spinner"></div> Signing up...';
         }
         
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email,
             password
         });
         
         if (error) throw error;
         
-        if (data.user && !data.user.confirmed_at) {
-            // Email confirmation required
-            showAlert('Please check your email to confirm your account.', 'success');
-        } else {
-            // Auto sign-in (if email confirmation is not required)
-            showAlert('Account created successfully!', 'success');
+        // Show success message or confirmation message depending on email confirmation settings
+        if (data.user && data.user.id) {
+            showAlert('Account created successfully', 'success');
+            
+            // If email confirmation is required
+            if (data.session === null) {
+                showAlert('Please check your email to confirm your account', 'info');
+            } else {
+                // Auto sign in
+                currentUser = data.user;
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
         }
-        
     } catch (error) {
         console.error('Error signing up:', error);
-        showAlert(`Sign up failed: ${error.message}`);
+        showAlert(error.message || 'Failed to create account');
     } finally {
         const signupButton = document.querySelector('#signupForm button[type="submit"]');
         if (signupButton) {
@@ -270,80 +316,123 @@ async function signUpWithEmail(email, password) {
 // Sign in with third-party provider
 async function signInWithProvider(provider) {
     try {
-        const supabase = window.supabaseClient;
-        if (!supabase) {
+        const supabaseClient = window.supabaseClient;
+        if (!supabaseClient) {
             showAlert('Supabase client not initialized');
             return;
         }
         
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        // Disable all social login buttons
+        document.querySelectorAll('.social-button').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'not-allowed';
+        });
+        
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider,
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`
+                redirectTo: window.location.origin + '/auth/callback'
             }
         });
         
         if (error) throw error;
         
-        // OAuth will redirect so no need to update UI here
-        
+        // The page will be redirected by Supabase OAuth flow
     } catch (error) {
         console.error(`Error signing in with ${provider}:`, error);
-        showAlert(`${provider} sign in failed: ${error.message}`);
+        showAlert(error.message || `Failed to sign in with ${provider}`);
+        
+        // Re-enable social login buttons
+        document.querySelectorAll('.social-button').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
     }
 }
 
 // Sign out
 async function signOut() {
     try {
-        const supabase = window.supabaseClient;
-        if (!supabase) {
+        const supabaseClient = window.supabaseClient;
+        if (!supabaseClient) {
             showAlert('Supabase client not initialized');
             return;
         }
         
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
         
+        // Clear current user
         currentUser = null;
         
-        // No need to redirect here, as the auth listener will handle it
-        showAlert('Signed out successfully!', 'success');
+        // Show success message
+        showAlert('Signed out successfully', 'success');
         
+        // Redirect to auth page
+        setTimeout(() => {
+            window.location.href = '/auth';
+        }, 500);
     } catch (error) {
         console.error('Error signing out:', error);
-        showAlert(`Sign out failed: ${error.message}`);
+        showAlert(error.message || 'Failed to sign out');
     }
 }
 
 // Update UI with user info
 function updateUIWithUser(user) {
-    if (!user) return;
-    
     const userInfo = document.getElementById('userInfo');
+    const profileButton = document.getElementById('profileButton');
+    
     if (userInfo) {
-        userInfo.innerHTML = `
-            <p><strong>${user.email || 'User'}</strong></p>
-            <p class="user-id">ID: ${user.id.substring(0, 8)}...</p>
-        `;
+        if (user) {
+            userInfo.innerHTML = `
+                <p class="user-email">${user.email || 'User'}</p>
+                <p class="user-id">ID: ${user.id.substring(0, 8)}...</p>
+            `;
+        } else {
+            userInfo.innerHTML = `<p>Not signed in</p>`;
+        }
+    }
+    
+    if (profileButton) {
+        profileButton.style.display = user ? 'flex' : 'none';
     }
 }
 
 // Toggle user menu
 function toggleUserMenu() {
     const userMenu = document.getElementById('userMenu');
-    if (userMenu) {
-        if (userMenu.style.display === 'none' || !userMenu.style.display) {
-            userMenu.style.display = 'block';
-        } else {
-            userMenu.style.display = 'none';
-        }
+    if (!userMenu) return;
+    
+    const isVisible = userMenu.style.display === 'block';
+    userMenu.style.display = isVisible ? 'none' : 'block';
+    
+    // Add click outside listener if opening
+    if (!isVisible) {
+        setTimeout(() => {
+            document.addEventListener('click', closeMenuOnClickOutside);
+        }, 10);
+    }
+}
+
+// Close menu when clicking outside
+function closeMenuOnClickOutside(e) {
+    const userMenu = document.getElementById('userMenu');
+    const profileButton = document.getElementById('profileButton');
+    
+    if (!userMenu || !profileButton) return;
+    
+    if (!userMenu.contains(e.target) && !profileButton.contains(e.target)) {
+        userMenu.style.display = 'none';
+        document.removeEventListener('click', closeMenuOnClickOutside);
     }
 }
 
 // Show alert
 function showAlert(message, type = 'error') {
-    // Create alert container if it doesn't exist
+    // Check if the alert container exists, create it if not
     let alertContainer = document.getElementById('alertContainer');
     if (!alertContainer) {
         alertContainer = document.createElement('div');
@@ -356,34 +445,69 @@ function showAlert(message, type = 'error') {
     }
     
     // Create alert element
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type}`;
-    alertElement.style.padding = '12px 16px';
-    alertElement.style.margin = '0 0 10px 0';
-    alertElement.style.borderRadius = '4px';
-    alertElement.style.color = 'white';
-    alertElement.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
-    alertElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-    alertElement.style.transition = 'all 0.3s ease';
-    alertElement.style.opacity = '0';
-    alertElement.style.transform = 'translateX(20px)';
-    alertElement.textContent = message;
+    const alert = document.createElement('div');
+    alert.className = `alert ${type}`;
+    alert.style.backgroundColor = type === 'error' ? '#f8d7da' : 
+                                 type === 'success' ? '#d4edda' : 
+                                 type === 'info' ? '#d1ecf1' : '#fff3cd';
+    alert.style.color = type === 'error' ? '#721c24' : 
+                       type === 'success' ? '#155724' : 
+                       type === 'info' ? '#0c5460' : '#856404';
+    alert.style.padding = '12px 18px';
+    alert.style.marginBottom = '10px';
+    alert.style.borderRadius = '4px';
+    alert.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+    alert.style.position = 'relative';
+    alert.style.animation = 'fadeIn 0.3s ease';
+    alert.innerHTML = `
+        <span style="margin-right: 8px;">
+            <i class="fas ${type === 'error' ? 'fa-circle-exclamation' : 
+                         type === 'success' ? 'fa-circle-check' : 
+                         type === 'info' ? 'fa-circle-info' : 'fa-triangle-exclamation'}"></i>
+        </span>
+        ${message}
+        <button style="position: absolute; right: 10px; top: 10px; background: none; border: none; cursor: pointer; color: inherit;">
+            <i class="fas fa-xmark"></i>
+        </button>
+    `;
+    
+    // Add styles for animation
+    const style = document.createElement('style');
+    if (!document.querySelector('#alert-animations')) {
+        style.id = 'alert-animations';
+        style.innerHTML = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add close functionality
+    alert.querySelector('button').addEventListener('click', () => {
+        alert.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(() => {
+            alertContainer.removeChild(alert);
+        }, 280);
+    });
+    
+    // Auto-remove after delay
+    setTimeout(() => {
+        if (alertContainer.contains(alert)) {
+            alert.style.animation = 'fadeOut 0.3s ease forwards';
+            setTimeout(() => {
+                if (alertContainer.contains(alert)) {
+                    alertContainer.removeChild(alert);
+                }
+            }, 280);
+        }
+    }, 5000);
     
     // Add to container
-    alertContainer.appendChild(alertElement);
-    
-    // Show with animation
-    setTimeout(() => {
-        alertElement.style.opacity = '1';
-        alertElement.style.transform = 'translateX(0)';
-    }, 10);
-    
-    // Hide and remove after timeout
-    setTimeout(() => {
-        alertElement.style.opacity = '0';
-        alertElement.style.transform = 'translateX(20px)';
-        setTimeout(() => {
-            alertContainer.removeChild(alertElement);
-        }, 300);
-    }, 5000);
+    alertContainer.appendChild(alert);
 }

@@ -324,51 +324,17 @@
         </div>
     </div>
 
-    <!-- Add Supabase library -->
+    <!-- Initialize Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
-
-    <!-- Initialize Supabase client -->
     <script>
-        const initSupabase = () => {
-            const supabaseUrl = '<%= process.env.SUPABASE_URL %>';
-            const supabaseKey = '<%= process.env.SUPABASE_ANON_KEY %>';
-            let supabaseClient = null;
-
-            try {
-                if (supabaseUrl && supabaseKey &&
-                    supabaseUrl !== '' &&
-                    supabaseKey !== '' &&
-                    !supabaseUrl.includes('process.env') &&
-                    !supabaseKey.includes('process.env')) {
-
-                    console.log('Initializing Supabase with valid credentials');
-                    supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-                    console.log('Supabase initialized successfully');
-                } else {
-                    console.log('Supabase credentials missing or invalid, using localStorage fallback');
-                }
-            } catch (error) {
-                console.error('Failed to initialize Supabase:', error);
-            }
-
-            window.supabaseClient = supabaseClient;
-            return supabaseClient;
-        };
-
-        // Only initialize if the supabase library is loaded
-        if (typeof supabase !== 'undefined') {
-            initSupabase();
-        } else {
-            console.warn('Supabase library not loaded, skipping initialization');
-        }
+        // Initialize Supabase client with environment variables
+        window.SUPABASE_URL = "REPLACE_SUPABASE_URL";
+        window.SUPABASE_ANON_KEY = "REPLACE_SUPABASE_KEY";
     </script>
 
-    <!-- Load the JavaScript files -->
-    <script src="js/main.js"></script>
-    <script src="js/index.js"></script>
-
-    <!-- Auth handling script -->
+    <!-- App Scripts -->
     <script src="js/auth.js"></script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>

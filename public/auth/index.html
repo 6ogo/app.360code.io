@@ -289,6 +289,7 @@
                 transform: translateY(-10px);
                 opacity: 0;
             }
+
             to {
                 transform: translateY(0);
                 opacity: 1;
@@ -360,7 +361,9 @@
                     <div class="form-group">
                         <label for="signupPassword">Password</label>
                         <input type="password" id="signupPassword" class="auth-input" required minlength="6">
-                        <small style="display: block; margin-top: 0.25rem; color: hsl(var(--muted-foreground));">Password must be at least 6 characters</small>
+                        <small
+                            style="display: block; margin-top: 0.25rem; color: hsl(var(--muted-foreground));">Password
+                            must be at least 6 characters</small>
                     </div>
                     <div class="form-group">
                         <button type="submit" class="auth-submit-btn">Sign Up</button>
@@ -387,47 +390,69 @@
         </div>
     </div>
 
-    <!-- Supabase library -->
+    <!-- Add Supabase library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
-    
+
     <!-- Initialize Supabase client -->
     <script>
         // Initialize Supabase client with environment variables
-        const supabaseUrl = '<%= process.env.SUPABASE_URL %>';
-        const supabaseKey = '<%= process.env.SUPABASE_ANON_KEY %>';
+        const supabaseUrl = "REPLACE_SUPABASE_URL";
+        const supabaseKey = "REPLACE_SUPABASE_KEY";
         let supabaseClient = null;
 
         try {
-            if (supabaseUrl && supabaseKey) {
+            console.log('Supabase URL:', supabaseUrl);
+            console.log('Supabase Key exists:', !!supabaseKey);
+            console.log('Supabase URL is placeholder:', supabaseUrl === "REPLACE_SUPABASE_URL");
+            console.log('Supabase Key is placeholder:', supabaseKey === "REPLACE_SUPABASE_KEY");
+
+            if (supabaseUrl &&
+                supabaseKey &&
+                supabaseUrl !== "REPLACE_SUPABASE_URL" &&
+                supabaseKey !== "REPLACE_SUPABASE_KEY" &&
+                supabaseUrl !== '""' &&
+                supabaseKey !== '""') {
+
+                console.log('Attempting to initialize Supabase with URL:', supabaseUrl);
+                try {
+                    // Validate URL format
+                    new URL(supabaseUrl);
+                    console.log('URL format is valid');
+                } catch (urlError) {
+                    console.error('Invalid URL format:', urlError);
+                }
+
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log('Supabase initialized successfully');
             } else {
-                console.log('Supabase credentials not available');
+                console.log('Supabase credentials missing or invalid, using localStorage fallback');
             }
         } catch (error) {
             console.error('Failed to initialize Supabase:', error);
+            console.error('Error stack:', error.stack);
         }
-        
+
         window.supabaseClient = supabaseClient;
     </script>
-    
+
+
     <!-- Auth handling script -->
     <script src="../js/auth.js"></script>
 
     <script>
         // Handle tab switching
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const authTabs = document.querySelectorAll('.auth-tab');
             const tabContents = document.querySelectorAll('.auth-tab-content');
-            
+
             authTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabName = tab.getAttribute('data-auth-tab');
-                    
+
                     // Update active tab
                     authTabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    
+
                     // Show selected content
                     tabContents.forEach(content => {
                         content.classList.remove('active');
