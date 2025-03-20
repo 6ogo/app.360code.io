@@ -101,7 +101,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       router.push('/auth')
     } catch (error) {
       console.error('Error signing out:', error)
-      throw error
+      // If there's an error (like the auth page doesn't exist), redirect to home
+      router.push('/')
     }
   }
 
