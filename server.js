@@ -24,10 +24,13 @@ app.use(express.static('public', {
   }));
   
 // Debug: Print environment variables
-console.log('Environment variables check:');
-console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? 'set (length: ' + process.env.SUPABASE_URL.length + ')' : 'NOT SET');
-console.log('- SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'set (length: ' + process.env.SUPABASE_ANON_KEY.length + ')' : 'NOT SET');
-console.log('- GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'set (length: ' + process.env.GROQ_API_KEY.length + ')' : 'NOT SET');
+console.log('=====================================');
+console.log('ENVIRONMENT VARIABLES DEBUG');
+console.log('=====================================');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ SET' : '❌ NOT SET');
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ NOT SET');
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? '✅ SET' : '❌ NOT SET');
+console.log('=====================================');
 
 // Validate environment variables
 const validateEnvVars = () => {
@@ -74,22 +77,31 @@ if (supabaseUrl && supabaseKey) {
 // Templating function to inject environment variables
 function injectEnvVariables(html) {
     try {
-        // Directly inject the environment variables as JavaScript variables
-        const safeSupabaseUrl = process.env.SUPABASE_URL || '';
-        const safeSupabaseKey = process.env.SUPABASE_ANON_KEY || '';
+        // Escape any special characters to prevent JS errors
+        const safeSupabaseUrl = process.env.SUPABASE_URL ? 
+            process.env.SUPABASE_URL.replace(/"/g, '\\"') : '';
+        const safeSupabaseKey = process.env.SUPABASE_ANON_KEY ? 
+            process.env.SUPABASE_ANON_KEY.replace(/"/g, '\\"') : '';
         
-        // Replace template tags and also add a script block with the variables
+        console.log(`Injecting environment variables:`);
+        console.log(`- SUPABASE_URL: ${safeSupabaseUrl ? 'present (length: ' + safeSupabaseUrl.length + ')' : 'missing'}`);
+        console.log(`- SUPABASE_ANON_KEY: ${safeSupabaseKey ? 'present (length: ' + safeSupabaseKey.length + ')' : 'missing'}`);
+        
+        // Create a script block to inject as early as possible
         const injectionScript = `
         <script>
             window.SUPABASE_URL = "${safeSupabaseUrl}";
             window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
+            console.log("Environment variables injected by server:");
+            console.log("SUPABASE_URL:", window.SUPABASE_URL ? "✅ SET" : "❌ NOT SET");
+            console.log("SUPABASE_ANON_KEY:", window.SUPABASE_ANON_KEY ? "✅ SET" : "❌ NOT SET");
         </script>
         `;
         
-        // Add the script right after the <head> tag
+        // Try to add the script right after the opening head tag
         let processedHtml = html.replace('<head>', '<head>' + injectionScript);
         
-        // Also replace any existing template tags for backward compatibility
+        // Also replace any template variables (for backward compatibility)
         processedHtml = processedHtml
             .replace(/<%=\s*process\.env\.SUPABASE_URL\s*%>/g, safeSupabaseUrl)
             .replace(/<%=\s*process\.env\.SUPABASE_ANON_KEY\s*%>/g, safeSupabaseKey);
@@ -244,6 +256,32 @@ app.get('/projects/:userId', async (req, res) => {
         console.error('Error fetching projects:', error);
         res.status(500).json({ error: 'Failed to fetch projects' });
     }
+});
+
+// Environment variables verification endpoint (for debugging only)
+app.get('/env-verify', (req, res) => {
+    // This endpoint should be disabled in production
+    // Only enable it temporarily for debugging
+    const envStatus = {
+        server: {
+            SUPABASE_URL: process.env.SUPABASE_URL ? 
+                `Set (length: ${process.env.SUPABASE_URL.length}, starts with: ${process.env.SUPABASE_URL.substring(0, 5)}...)` : 
+                'NOT SET',
+            SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 
+                `Set (length: ${process.env.SUPABASE_ANON_KEY.length})` : 
+                'NOT SET',
+            GROQ_API_KEY: process.env.GROQ_API_KEY ? 
+                `Set (length: ${process.env.GROQ_API_KEY.length})` : 
+                'NOT SET',
+            NODE_ENV: process.env.NODE_ENV || 'Not specified'
+        },
+        request: {
+            host: req.headers.host,
+            userAgent: req.headers['user-agent']
+        }
+    };
+    
+    res.json(envStatus);
 });
 
 // Start the server
