@@ -190,3 +190,9 @@ app.get('/debug-paths', (req, res) => {
     
     res.json({ paths, exists });
 });
+
+// Start the server
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
