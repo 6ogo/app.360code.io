@@ -11,8 +11,18 @@ dotenv.config();
 // Initialize Express
 const app = express();
 app.use(express.json());
-app.use(express.static('public'));
-
+app.use(express.static('public', {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      } else if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+    }
+  }));
+  
 // Debug: Print environment variables
 console.log('Environment variables:');
 console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? 'set' : 'NOT SET');
@@ -83,6 +93,34 @@ app.get('/', (req, res) => {
         const processedHtml = injectEnvVariables(data);
         res.send(processedHtml);
     });
+});
+
+// script to help diagnose server-side issues
+app.get('/debug', (req, res) => {
+    const debug = {
+        environment: {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: process.env.PORT,
+            SUPABASE_URL_SET: !!process.env.SUPABASE_URL,
+            SUPABASE_ANON_KEY_SET: !!process.env.SUPABASE_ANON_KEY,
+            GROQ_API_KEY_SET: !!process.env.GROQ_API_KEY
+        },
+        directories: {
+            current: __dirname,
+            public: path.join(__dirname, 'public'),
+            publicExists: fs.existsSync(path.join(__dirname, 'public'))
+        },
+        files: {
+            publicDir: fs.existsSync(path.join(__dirname, 'public')) ? 
+                fs.readdirSync(path.join(__dirname, 'public')) : [],
+            stylesDir: fs.existsSync(path.join(__dirname, 'public', 'styles')) ? 
+                fs.readdirSync(path.join(__dirname, 'public', 'styles')) : [],
+            jsDir: fs.existsSync(path.join(__dirname, 'public', 'js')) ? 
+                fs.readdirSync(path.join(__dirname, 'public', 'js')) : []
+        }
+    };
+    
+    res.json(debug);
 });
 
 // Generate code endpoint
