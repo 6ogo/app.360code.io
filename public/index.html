@@ -10,7 +10,6 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.24.0/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="/styles/style.css">
 </head>
 
@@ -254,26 +253,39 @@
     </script>
 
     <!-- Add event listeners to handle the UI interactions -->
-    <script>
-        // Initialize Supabase - this code needs to be in the HTML to ensure proper initialization
-        const supabaseUrl = '__SUPABASE_URL__';
-        const supabaseKey = '__SUPABASE_ANON_KEY__';
-        let supabaseClient = null;
+<!-- Initialize Supabase -->
+<script>
+    // More robust Supabase initialization
+    const supabaseUrl = '__SUPABASE_URL__';
+    const supabaseKey = '__SUPABASE_ANON_KEY__';
+    let supabaseClient = null;
 
-        if (supabaseUrl && supabaseKey && supabaseUrl !== '__SUPABASE_URL__' && supabaseKey !== '__SUPABASE_ANON_KEY__') {
-            try {
-                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-                console.log('Supabase initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize Supabase:', error);
-            }
-        } else {
-            console.log('Supabase credentials not available, will use localStorage for storage');
+    // Check if values were properly injected and are valid
+    if (supabaseUrl && supabaseKey && 
+        supabaseUrl !== '__SUPABASE_URL__' && 
+        supabaseKey !== '__SUPABASE_ANON_KEY__') {
+        try {
+            console.log('Initializing Supabase with provided credentials');
+            // Access the global supabase object from the imported library
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
         }
+    } else {
+        console.log('Supabase credentials not available, will use localStorage for storage');
+    }
 
-        // Make supabase client available globally
-        window.supabaseClient = supabaseClient;
-    </script>
+    // Make supabase client available globally
+    window.supabaseClient = supabaseClient;
+    
+    // Debug info
+    console.log('Supabase URL detection:', {
+        'defined': Boolean(supabaseUrl),
+        'non-empty': Boolean(supabaseUrl && supabaseUrl.length > 0),
+        'not-placeholder': supabaseUrl !== '__SUPABASE_URL__'
+    });
+</script>
 
     <!-- Load the initialization script first -->
     <script src="/js/main.js"></script>
