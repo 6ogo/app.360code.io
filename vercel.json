@@ -4,6 +4,10 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -20,8 +24,16 @@
       "dest": "/public/api/$1"
     },
     {
-      "src": "/(.*\\.(svg|png|jpg|jpeg|ico|json))",
-      "dest": "/public/$1" 
+      "src": "/(.*\\.(svg|png|jpg|jpeg|ico|gif))",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/public/favicon.ico"
+    },
+    {
+      "src": "/logo.svg",
+      "dest": "/public/logo.svg"
     },
     {
       "src": "/auth",
@@ -33,6 +45,18 @@
     },
     {
       "src": "/",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/generate",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/debug",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/env-verify",
       "dest": "/server.js"
     },
     {

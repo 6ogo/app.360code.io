@@ -11,17 +11,22 @@ dotenv.config();
 // Initialize Express
 const app = express();
 app.use(express.json());
-app.use(express.static('public', {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-      } else if (path.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      } else if (path.endsWith('.svg')) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-      }
+app.use('/styles', express.static(path.join(__dirname, 'public', 'styles')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
+app.use('/api', express.static(path.join(__dirname, 'public', 'api')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html');
     }
-  }));
+  }
+}));
   
 // Debug: Print environment variables
 console.log('=====================================');
@@ -77,35 +82,38 @@ if (supabaseUrl && supabaseKey) {
 // Templating function to inject environment variables
 function injectEnvVariables(html) {
     try {
-        // Escape any special characters to prevent JS errors
-        const safeSupabaseUrl = process.env.SUPABASE_URL ? 
-            process.env.SUPABASE_URL.replace(/"/g, '\\"') : '';
-        const safeSupabaseKey = process.env.SUPABASE_ANON_KEY ? 
-            process.env.SUPABASE_ANON_KEY.replace(/"/g, '\\"') : '';
+        // Ensure we have valid values to inject
+        const safeSupabaseUrl = process.env.SUPABASE_URL || '';
+        const safeSupabaseKey = process.env.SUPABASE_ANON_KEY || '';
         
-        console.log(`Injecting environment variables:`);
+        console.log(`Injecting environment variables into HTML:`);
         console.log(`- SUPABASE_URL: ${safeSupabaseUrl ? 'present (length: ' + safeSupabaseUrl.length + ')' : 'missing'}`);
         console.log(`- SUPABASE_ANON_KEY: ${safeSupabaseKey ? 'present (length: ' + safeSupabaseKey.length + ')' : 'missing'}`);
         
-        // Create a script block to inject as early as possible
-        const injectionScript = `
-        <script>
-            window.SUPABASE_URL = "${safeSupabaseUrl}";
-            window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
-            console.log("Environment variables injected by server:");
-            console.log("SUPABASE_URL:", window.SUPABASE_URL ? "✅ SET" : "❌ NOT SET");
-            console.log("SUPABASE_ANON_KEY:", window.SUPABASE_ANON_KEY ? "✅ SET" : "❌ NOT SET");
-        </script>
-        `;
+        if (!safeSupabaseUrl || !safeSupabaseKey) {
+            console.warn('WARNING: Missing one or more required environment variables!');
+        }
         
-        // Try to add the script right after the opening head tag
-        let processedHtml = html.replace('<head>', '<head>' + injectionScript);
+        // Create an inline script to ensure variables are available immediately
+        // We'll inject this in multiple places to ensure it's available
+        const inlineScript = `
+<script>
+  // Directly set environment variables on window
+  window.SUPABASE_URL = "${safeSupabaseUrl}";
+  window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
+  console.log("[ENV INJECTOR] Environment variables set on window object");
+  console.log("[ENV INJECTOR] SUPABASE_URL present:", !!window.SUPABASE_URL);
+  console.log("[ENV INJECTOR] SUPABASE_ANON_KEY present:", !!window.SUPABASE_ANON_KEY);
+</script>`;
+
+        // Inject right after <head> tag
+        let processedHtml = html.replace('<head>', '<head>' + inlineScript);
         
-        // Also replace any template variables (for backward compatibility)
+        // Also replace any template variables
         processedHtml = processedHtml
             .replace(/<%=\s*process\.env\.SUPABASE_URL\s*%>/g, safeSupabaseUrl)
             .replace(/<%=\s*process\.env\.SUPABASE_ANON_KEY\s*%>/g, safeSupabaseKey);
-        
+            
         return processedHtml;
     } catch (error) {
         console.error('Error injecting environment variables:', error);
@@ -258,31 +266,36 @@ app.get('/projects/:userId', async (req, res) => {
     }
 });
 
-// Environment variables verification endpoint (for debugging only)
-app.get('/env-verify', (req, res) => {
-    // This endpoint should be disabled in production
-    // Only enable it temporarily for debugging
-    const envStatus = {
-        server: {
-            SUPABASE_URL: process.env.SUPABASE_URL ? 
-                `Set (length: ${process.env.SUPABASE_URL.length}, starts with: ${process.env.SUPABASE_URL.substring(0, 5)}...)` : 
-                'NOT SET',
-            SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 
-                `Set (length: ${process.env.SUPABASE_ANON_KEY.length})` : 
-                'NOT SET',
-            GROQ_API_KEY: process.env.GROQ_API_KEY ? 
-                `Set (length: ${process.env.GROQ_API_KEY.length})` : 
-                'NOT SET',
-            NODE_ENV: process.env.NODE_ENV || 'Not specified'
-        },
-        request: {
-            host: req.headers.host,
-            userAgent: req.headers['user-agent']
-        }
+// Add this debug route to verify static file paths
+app.get('/file-paths', (req, res) => {
+    const basePath = __dirname;
+    const publicPath = path.join(__dirname, 'public');
+    const stylesPath = path.join(__dirname, 'public', 'styles');
+    const jsPath = path.join(__dirname, 'public', 'js');
+    
+    const exists = {
+      base: fs.existsSync(basePath),
+      public: fs.existsSync(publicPath),
+      styles: fs.existsSync(stylesPath),
+      js: fs.existsSync(jsPath),
+      'styles/style.css': fs.existsSync(path.join(stylesPath, 'style.css')),
+      'js/auth.js': fs.existsSync(path.join(jsPath, 'auth.js')),
+      'logo.svg': fs.existsSync(path.join(publicPath, 'logo.svg'))
     };
     
-    res.json(envStatus);
-});
+    res.json({
+      paths: {
+        base: basePath,
+        public: publicPath,
+        styles: stylesPath,
+        js: jsPath
+      },
+      exists,
+      env: {
+        NODE_ENV: process.env.NODE_ENV
+      }
+    });
+  });
 
 // Start the server
 const PORT = process.env.PORT || 3000;
