@@ -4,6 +4,10 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -22,6 +26,26 @@
     {
       "src": "/(.*\\.(svg|png|jpg|jpeg|ico|gif))",
       "dest": "/public/$1"
+    },
+    {
+      "src": "/(favicon\\.ico|logo\\.svg)",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/auth",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/generate",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/debug-(.*)",
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",

@@ -4,13 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="../favicon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
     <title>Sign In - 360code.io</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="/styles/style.css">
+    <script>
+        // Debug output for environment variables
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Auth page loaded');
+            console.log('Supabase URL:', window.SUPABASE_URL ? window.SUPABASE_URL.substring(0, 5) + '...' : 'Not set');
+            console.log('Supabase Key exists:', !!window.SUPABASE_ANON_KEY);
+        });
+    </script>
 </head>
 
 <body>
@@ -22,7 +30,7 @@
     <div class="auth-container">
         <div class="auth-header">
             <div class="auth-logo">
-                <img src="../logo.svg" alt="360code.io Logo" class="logo-img">
+                <img src="/logo.svg" alt="360code.io Logo" class="logo-img">
                 <h1 class="auth-title">360code.io</h1>
             </div>
             <p>Sign in to access AI-powered code generation</p>
@@ -108,57 +116,20 @@
     <!-- Add Supabase library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 
-    <!-- Initialize Supabase client -->
-    <script>
-        // Initialize Supabase client with environment variables from the window object
-        // The server injects these values before sending the HTML
-        const supabaseUrl = window.SUPABASE_URL;
-        const supabaseKey = window.SUPABASE_ANON_KEY;
-        let supabaseClient = null;
-
-        try {
-            console.log('Supabase URL:', supabaseUrl ? supabaseUrl.substring(0, 5) + '...' : 'Not set');
-            console.log('Supabase Key exists:', !!supabaseKey);
-
-            if (supabaseUrl && supabaseKey && 
-                supabaseUrl !== '' && 
-                supabaseKey !== '') {
-
-                console.log('Attempting to initialize Supabase');
-                try {
-                    // Validate URL format
-                    new URL(supabaseUrl);
-                    console.log('URL format is valid');
-                } catch (urlError) {
-                    console.error('Invalid URL format:', urlError);
-                }
-
-                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-                console.log('Supabase initialized successfully');
-            } else {
-                console.log('Supabase credentials missing, using localStorage fallback');
-            }
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
-            console.error('Error stack:', error.stack);
-        }
-
-        window.supabaseClient = supabaseClient;
-    </script>
-
-
     <!-- Auth handling script -->
-    <script src="../js/auth.js"></script>
+    <script src="/js/auth.js"></script>
 
     <script>
         // Handle tab switching
         document.addEventListener('DOMContentLoaded', function () {
+            console.log('Setting up auth tabs');
             const authTabs = document.querySelectorAll('.auth-tab');
             const tabContents = document.querySelectorAll('.auth-tab-content');
 
             authTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabName = tab.getAttribute('data-auth-tab');
+                    console.log('Tab clicked:', tabName);
 
                     // Update active tab
                     authTabs.forEach(t => t.classList.remove('active'));
@@ -173,6 +144,19 @@
                     });
                 });
             });
+
+            // Initialize Supabase client if environment variables are available
+            if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+                console.log('Initializing Supabase client from auth page script');
+                try {
+                    window.supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+                    console.log('Supabase client initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize Supabase client:', error);
+                }
+            } else {
+                console.warn('Supabase credentials missing, some features may not work');
+            }
         });
     </script>
 </body>

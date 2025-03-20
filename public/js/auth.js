@@ -1,11 +1,21 @@
-// public/js/auth.js
-
 // Auth State Management
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Supabase Client
-    initializeSupabase();
+    console.log('Auth.js loaded');
+    
+    // Initialize Supabase Client if not already done
+    if (!window.supabaseClient && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+        try {
+            console.log('Initializing Supabase from auth.js');
+            window.supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+            console.log('Supabase client initialized successfully from auth.js');
+        } catch (error) {
+            console.error('Failed to initialize Supabase from auth.js:', error);
+        }
+    } else {
+        console.log('Supabase client already initialized or missing credentials');
+    }
 
     // Initialize Supabase Auth Listener
     initializeAuthListener();
@@ -29,8 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listeners for auth page
     if (isAuthPage) {
+        console.log('Setting up auth page event listeners');
+        
         // Tab switching
-        if (authTabs) {
+        if (authTabs && authTabs.length > 0) {
             authTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabName = tab.getAttribute('data-auth-tab');
@@ -40,12 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     tab.classList.add('active');
                     
                     // Show selected content
-                    if (tabName === 'signin') {
-                        signinTab.style.display = 'block';
-                        signupTab.style.display = 'none';
-                    } else {
-                        signinTab.style.display = 'none';
-                        signupTab.style.display = 'block';
+                    if (tabName === 'signin' && signinTab && signupTab) {
+                        signinTab.classList.add('active');
+                        signupTab.classList.remove('active');
+                    } else if (signinTab && signupTab) {
+                        signinTab.classList.remove('active');
+                        signupTab.classList.add('active');
                     }
                 });
             });
@@ -84,78 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (googleSignUp) {
-            googleSignUp.addEventListener('click', () => signInWithProvider('github'));
-        }
-    }
-    
-    // Add user profile button to topbar for main app page
-    if (!isAuthPage) {
-        const topbarActions = document.querySelector('.topbar-actions');
-        if (topbarActions && !document.getElementById('profileButton')) {
-            // Create profile button
-            const profileButton = document.createElement('button');
-            profileButton.id = 'profileButton';
-            profileButton.className = 'profile-button';
-            profileButton.innerHTML = '<i class="fas fa-user"></i>';
-            profileButton.addEventListener('click', toggleUserMenu);
-            
-            // Create user menu dropdown
-            const userMenu = document.createElement('div');
-            userMenu.id = 'userMenu';
-            userMenu.className = 'user-menu';
-            userMenu.style.display = 'none';
-            userMenu.innerHTML = `
-                <div id="userInfo" class="user-info">
-                    <p>Loading...</p>
-                </div>
-                <button id="signOutButton" class="menu-item">Sign Out</button>
-            `;
-            
-            topbarActions.appendChild(profileButton);
-            document.querySelector('.topbar').appendChild(userMenu);
-            
-            // Set up sign out button
-            document.getElementById('signOutButton').addEventListener('click', async () => {
-                await signOut();
-                toggleUserMenu();
-            });
+            googleSignUp.addEventListener('click', () => signInWithProvider('google'));
         }
     }
 });
-
-// Initialize Supabase Client
-function initializeSupabase() {
-    // Check if the client is already initialized
-    if (window.supabaseClient) {
-        return;
-    }
-    
-    try {
-        // Get credentials from the window object - these are injected by the server
-        const supabaseUrl = window.SUPABASE_URL;
-        const supabaseKey = window.SUPABASE_ANON_KEY;
-        
-        // Only initialize if we have real values
-        if (supabaseUrl && supabaseKey && 
-            supabaseUrl !== '' && supabaseKey !== '') {
-            console.log('Initializing Supabase client with window variables');
-            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-            console.log('Supabase client initialized successfully');
-        } else {
-            console.error('Missing Supabase credentials for initialization');
-            showAlert('Authentication service unavailable. Please try again later or contact support.', 'error');
-        }
-    } catch (error) {
-        console.error('Error initializing Supabase client:', error);
-        showAlert('Failed to initialize authentication. Please refresh the page or try again later.', 'error');
-    }
-}
 
 // Initialize Auth Listener
 function initializeAuthListener() {
     const supabaseClient = window.supabaseClient;
     if (!supabaseClient) {
-        console.error('Supabase client not initialized');
+        console.warn('Supabase client not initialized, cannot set up auth listener');
         return;
     }
     
@@ -186,7 +136,7 @@ async function checkSession() {
     try {
         const supabaseClient = window.supabaseClient;
         if (!supabaseClient) {
-            console.error('Supabase client not initialized');
+            console.warn('Supabase client not initialized, cannot check session');
             return;
         }
         
@@ -212,7 +162,7 @@ async function checkSession() {
 function redirectIfNeeded(isAuthenticated) {
     const isAuthPage = window.location.pathname.includes('/auth');
     
-    // Note: Only redirect if necessary to prevent infinite loops
+    // Only redirect if necessary to prevent infinite loops
     if (isAuthenticated && isAuthPage) {
         // User is authenticated and on auth page, redirect to app
         window.location.href = '/';
@@ -383,17 +333,22 @@ async function signOut() {
 // Update UI with user info
 function updateUIWithUser(user) {
     const userInfo = document.getElementById('userInfo');
+    const userMenuInfo = document.getElementById('userMenuInfo');
     const profileButton = document.getElementById('profileButton');
     
     if (userInfo) {
         if (user) {
             userInfo.innerHTML = `
-                <p class="user-email">${user.email || 'User'}</p>
-                <p class="user-id">ID: ${user.id.substring(0, 8)}...</p>
+                <p class="user-name">${user.email.split('@')[0]}</p>
+                <p class="user-email text-xs text-bolt-elements-textSecondary truncate">${user.email}</p>
             `;
         } else {
             userInfo.innerHTML = `<p>Not signed in</p>`;
         }
+    }
+    
+    if (userMenuInfo && user) {
+        userMenuInfo.innerHTML = `<p><strong>${user.email}</strong></p>`;
     }
     
     if (profileButton) {
@@ -437,9 +392,9 @@ function showAlert(message, type = 'error') {
     
     if (isAuthPage) {
         // On auth page, show alert in the appropriate container
-        const alertContainer = type === 'error' ? 
-            document.getElementById('signinAlerts') || document.getElementById('signupAlerts') : 
-            document.getElementById('signinAlerts') || document.getElementById('signupAlerts');
+        const activeTab = document.querySelector('.auth-tab.active');
+        const tabName = activeTab ? activeTab.getAttribute('data-auth-tab') : 'signin';
+        const alertContainer = document.getElementById(`${tabName}Alerts`);
         
         if (alertContainer) {
             const alert = document.createElement('div');
@@ -480,3 +435,10 @@ function showAlert(message, type = 'error') {
         }
     }
 }
+
+// Expose necessary functions to window
+window.signInWithEmail = signInWithEmail;
+window.signUpWithEmail = signUpWithEmail;
+window.signInWithProvider = signInWithProvider;
+window.signOut = signOut;
+window.toggleUserMenu = toggleUserMenu;

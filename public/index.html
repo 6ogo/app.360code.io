@@ -4,13 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
     <title>360code.io - AI-Powered Code Generator</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/public/styles/style.css">
+    <link rel="stylesheet" href="/styles/style.css">
+    <script>
+        // Debug output for environment variables
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Main page loaded');
+            console.log('Supabase URL:', window.SUPABASE_URL ? window.SUPABASE_URL.substring(0, 5) + '...' : 'Not set');
+            console.log('Supabase Key exists:', !!window.SUPABASE_ANON_KEY);
+        });
+    </script>
 </head>
 
 <body>
@@ -25,7 +33,7 @@
             <div class="sidebar-header">
                 <div class="sidebar-brand">
                     <div class="logo-container">
-                        <img src="/public/logo.svg" alt="360code.io Logo" class="logo-img" style="width: 32px; height: 32px;">
+                        <img src="/logo.svg" alt="360code.io Logo" class="logo-img" style="width: 32px; height: 32px;">
                     </div>
                     <span class="brand-text">360code.io</span>
                 </div>
@@ -283,62 +291,16 @@
     <!-- Add Supabase library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 
-    <!-- Initialize Supabase client with environment variables from window object -->
-    <script>
-        // Initialize Supabase client with environment variables from the window object
-        // The server injects these values before sending the HTML
-        const supabaseUrl = window.SUPABASE_URL;
-        const supabaseKey = window.SUPABASE_ANON_KEY;
-        let supabaseClient = null;
+    <!-- Load JavaScript files -->
+    <script src="/js/main.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/index.js"></script>
 
-        try {
-            console.log('Checking Supabase credentials:');
-            console.log('SUPABASE_URL exists:', !!supabaseUrl);
-            console.log('SUPABASE_KEY exists:', !!supabaseKey);
-            
-            if (supabaseUrl && supabaseKey && 
-                supabaseUrl !== '' && 
-                supabaseKey !== '') {
-                
-                console.log('Initializing Supabase with credentials');
-                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-                console.log('Supabase initialized successfully');
-            } else {
-                console.warn('Supabase credentials missing or invalid');
-                // Show error toast if credentials are missing
-                setTimeout(() => {
-                    const toastContainer = document.getElementById('toastContainer');
-                    if (toastContainer) {
-                        const toast = document.createElement('div');
-                        toast.className = 'toast toast-error';
-                        toast.innerHTML = `
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <div>Supabase credentials missing or invalid. Please check your server configuration.</div>
-                            </div>
-                        `;
-                        toastContainer.appendChild(toast);
-                        setTimeout(() => toastContainer.removeChild(toast), 5000);
-                    }
-                }, 1000);
-            }
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
-        }
-
-        // Expose supabase client to window for use in other scripts
-        window.supabaseClient = supabaseClient;
-    </script>
-
-    <!-- Load the JavaScript files -->
-    <script src="/public/js/main.js"></script>
-    <script src="/public/js/index.js"></script>
-    <script src="/public/js/auth.js"></script>
-
-    <!-- Auth check script to ensure users are logged in -->
     <script>
         // Check authentication on page load
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Main page DOM loaded, checking auth');
+            
             const loadingModal = document.getElementById('loadingModal');
             const authCheckModal = document.getElementById('authCheckModal');
             const redirectToLoginBtn = document.getElementById('redirectToLoginBtn');
@@ -350,6 +312,17 @@
                 });
             }
 
+            // Initialize Supabase client if environment variables are available
+            if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY && !window.supabaseClient) {
+                try {
+                    console.log('Initializing Supabase client from main page');
+                    window.supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+                    console.log('Supabase client initialized successfully from main page');
+                } catch (error) {
+                    console.error('Failed to initialize Supabase client from main page:', error);
+                }
+            }
+
             // Function to check auth and redirect if needed
             async function checkAuthAndRedirect() {
                 try {
@@ -359,39 +332,42 @@
                         if (loadingModal) loadingModal.classList.remove('visible');
                         // Show auth check modal
                         if (authCheckModal) authCheckModal.classList.add('visible');
-                        // Hide the main content to prevent interaction
-                        if (appContainer) {
-                            // Hide everything except the auth modal
-                            const elementsToHide = document.querySelectorAll('.app-container > *:not(#authCheckModal)');
-                            elementsToHide.forEach(el => {
-                                if (el.id !== 'authCheckModal' && el.id !== 'loadingModal') {
-                                    el.style.display = 'none';
-                                }
-                            });
-                        }
-                        // Directly redirect after a short delay
+                        
+                        // Redirect after a short delay
                         setTimeout(() => {
                             window.location.href = '/auth';
-                        }, 1000);
+                        }, 2000);
                         return;
                     }
 
+                    console.log('Checking user session');
                     const { data, error } = await window.supabaseClient.auth.getUser();
 
                     if (error || !data?.user) {
                         console.log('User not authenticated, redirecting to auth page');
                         // Hide loading modal
                         if (loadingModal) loadingModal.classList.remove('visible');
-                        // Redirect to auth page immediately
-                        window.location.href = '/auth';
+                        // Show auth check modal briefly
+                        if (authCheckModal) authCheckModal.classList.add('visible');
+                        
+                        // Redirect to auth page after a short delay
+                        setTimeout(() => {
+                            window.location.href = '/auth';
+                        }, 2000);
                     } else {
                         console.log('User authenticated:', data.user.email);
                         // Update user info
-                        updateUserInfo(data.user);
+                        if (typeof updateUserInfo === 'function') {
+                            updateUserInfo(data.user);
+                        } else {
+                            console.warn('updateUserInfo function not found');
+                        }
+                        
                         // Hide loading modal
                         if (loadingModal) loadingModal.classList.remove('visible');
+                        
                         // Initialize the app
-                        if (typeof window.initializeApp === 'function') {
+                        if (typeof initializeApp === 'function') {
                             window.initializeApp();
                         } else {
                             console.error('initializeApp function not found');
@@ -401,67 +377,79 @@
                     console.error('Auth check error:', err);
                     // Hide loading modal
                     if (loadingModal) loadingModal.classList.remove('visible');
-                    // Redirect to auth page on error
-                    window.location.href = '/auth';
-                }
-            }
-
-            // Update UI with user info
-            function updateUserInfo(user) {
-                // Update sidebar user info
-                const userInfo = document.getElementById('userInfo');
-                if (userInfo) {
-                    userInfo.innerHTML = `
-                        <p class="user-name">${user.email.split('@')[0]}</p>
-                        <p class="user-email text-xs text-bolt-elements-textSecondary truncate">${user.email}</p>
-                    `;
-                }
-
-                // Update user menu info
-                const userMenuInfo = document.getElementById('userMenuInfo');
-                if (userMenuInfo) {
-                    userMenuInfo.innerHTML = `<p><strong>${user.email}</strong></p>`;
-                }
-
-                // Setup sign out buttons
-                const signOutButton = document.getElementById('signOutButton');
-                const signOutButtonMenu = document.getElementById('signOutButtonMenu');
-
-                const signOutHandler = async () => {
-                    try {
-                        await window.supabaseClient.auth.signOut();
+                    // Show auth check modal
+                    if (authCheckModal) authCheckModal.classList.add('visible');
+                    
+                    // Redirect to auth page on error after a short delay
+                    setTimeout(() => {
                         window.location.href = '/auth';
-                    } catch (error) {
-                        console.error('Error signing out:', error);
-                    }
-                };
-
-                if (signOutButton) signOutButton.addEventListener('click', signOutHandler);
-                if (signOutButtonMenu) signOutButtonMenu.addEventListener('click', signOutHandler);
-            }
-
-            // Add event listener for user menu toggle
-            const profileButton = document.getElementById('profileButton');
-            const userMenu = document.getElementById('userMenu');
-
-            if (profileButton && userMenu) {
-                profileButton.addEventListener('click', () => {
-                    userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
-                });
-
-                // Close menu when clicking outside
-                document.addEventListener('click', (event) => {
-                    if (profileButton && userMenu &&
-                        !profileButton.contains(event.target) &&
-                        !userMenu.contains(event.target)) {
-                        userMenu.style.display = 'none';
-                    }
-                });
+                    }, 2000);
+                }
             }
 
             // Check auth after a slight delay to ensure Supabase is initialized
-            setTimeout(checkAuthAndRedirect, 500);
+            setTimeout(checkAuthAndRedirect, 1000);
         });
+
+        // Utility function to update user info in the UI
+        function updateUserInfo(user) {
+            if (!user) return;
+            
+            // Update sidebar user info
+            const userInfo = document.getElementById('userInfo');
+            if (userInfo) {
+                userInfo.innerHTML = `
+                    <p class="user-name">${user.email.split('@')[0]}</p>
+                    <p class="user-email text-xs text-bolt-elements-textSecondary truncate">${user.email}</p>
+                `;
+            }
+
+            // Update user menu info
+            const userMenuInfo = document.getElementById('userMenuInfo');
+            if (userMenuInfo) {
+                userMenuInfo.innerHTML = `<p><strong>${user.email}</strong></p>`;
+            }
+
+            // Setup sign out buttons
+            const signOutButton = document.getElementById('signOutButton');
+            const signOutButtonMenu = document.getElementById('signOutButtonMenu');
+
+            const signOutHandler = async () => {
+                try {
+                    await window.supabaseClient.auth.signOut();
+                    window.location.href = '/auth';
+                } catch (error) {
+                    console.error('Error signing out:', error);
+                    showToast('Failed to sign out. Please try again.', 'error');
+                }
+            };
+
+            if (signOutButton) signOutButton.addEventListener('click', signOutHandler);
+            if (signOutButtonMenu) signOutButtonMenu.addEventListener('click', signOutHandler);
+        }
+
+        // Utility function to show toast notifications
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toastContainer.contains(toast)) {
+                    toastContainer.removeChild(toast);
+                }
+            }, 5000);
+        }
     </script>
 </body>
 
