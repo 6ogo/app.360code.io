@@ -145,7 +145,11 @@ export default function Chat() {
   // Convert AI messages to our app's message format
   const convertedMessages: AppMessage[] = aiMessages.map((message, index) => ({
     role: message.role === 'user' || message.role === 'assistant' ? message.role : 'assistant',
-    content: parsedMessages[index] || (typeof message.content === 'string' ? message.content : message.content.toString())
+    content: parsedMessages[index] || (typeof message.content === 'string' 
+      ? message.content 
+      : typeof message.content === 'object' && message.content !== null
+        ? JSON.stringify(message.content)
+        : String(message.content))
   }));
 
   const divRef = useRef<HTMLDivElement | null>(null);
