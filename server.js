@@ -11,6 +11,7 @@ dotenv.config();
 // Initialize Express
 const app = express();
 app.use(express.json());
+const Groq = createClient({ apiKey: process.env.GROQ_API_KEY });
 
 // Debug: Print environment variables to verify they're loading
 console.log('Environment variables:');
@@ -96,35 +97,26 @@ app.get('*', (req, res) => {
 
 // Generate code endpoint
 app.post('/generate', async (req, res) => {
-    const { prompt, model = 'qwen-2.5-coder-32b', temperature = 0.7 } = req.body;
-
-    if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' });
-    }
-
     try {
-        console.log(`Generating code with model: ${model}, temperature: ${temperature}`);
-
+        const { prompt, model, temperature } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
+        console.log('Generating with model:', model, 'temperature:', temperature);
         const completion = await groq.chat.completions.create({
-            model: model,
+            model: model || 'mixtral-8x7b-32768', // Default model if unspecified
             messages: [
-                {
-                    role: 'system',
-                    content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.'
-                },
+                { role: 'system', content: 'You are an expert developer...' },
                 { role: 'user', content: prompt }
             ],
-            temperature: parseFloat(temperature),
+            temperature: parseFloat(temperature) || 0.7,
             max_tokens: 4000,
         });
-
         const generatedCode = completion.choices[0].message.content;
-        console.log('Code generated successfully');
-
-        res.json({ generatedCode });
+        res.json({ code: generatedCode });
     } catch (error) {
-        console.error('Error generating code:', error);
-        res.status(500).json({ error: error.message || 'Failed to generate code' });
+        console.error('Error in /generate:', error);
+        res.status(500).json({ error: 'Failed to generate code' });
     }
 });
 

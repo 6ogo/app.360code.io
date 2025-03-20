@@ -47,19 +47,32 @@ body {
     left: 0;
     width: 250px;
     height: 100%;
-    transform: translateX(-100%);
+    background-color: #ffffff; /* Solid white, adjust to your theme */
+    z-index: 1000; /* Ensures it’s above other content */
+    transform: translateX(-100%); /* Hidden by default */
     transition: transform 0.3s ease;
 }
-
 .sidebar.open {
-    transform: translateX(0);
+    transform: translateX(0); /* Visible when open */
+    box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Optional: Adds depth */
 }
 
 @media (min-width: 769px) {
+    #sidebarToggle {
+        display: none;
+    }
+
     .sidebar {
         transform: translateX(0); /* Always visible on desktop */
     }
 }
+
+@media (max-width: 768px) {
+    #sidebarToggle {
+        display: block;
+    }
+}
+
 .sidebar-header {
     padding: 1.25rem;
     border-bottom: 1px solid hsla(var(--border) / 0.5);

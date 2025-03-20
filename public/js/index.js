@@ -15,8 +15,8 @@ let currentConversation = {
 };
 
 // DOM Elements
-const sidebar = document.getElementById('sidebar');
-const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.querySelector('.sidebar');
+const sidebarToggle = document.querySelector('#sidebarToggle');
 const closeSidebar = document.getElementById('closeSidebar');
 const newChatButton = document.getElementById('newChatButton');
 const projectHistory = document.getElementById('projectHistory');
@@ -48,7 +48,6 @@ window.addEventListener('DOMContentLoaded', () => {
 if (sidebarToggle && sidebar) {
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
-        console.log(sidebar.classList.contains('open') ? 'Opening sidebar' : 'Closing sidebar');
     });
 }
 
