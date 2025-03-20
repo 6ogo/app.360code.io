@@ -48,12 +48,14 @@ window.addEventListener('DOMContentLoaded', () => {
 if (sidebarToggle) {
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
+        updateToggleIcon();
     });
 }
 
 if (closeSidebar) {
     closeSidebar.addEventListener('click', () => {
         sidebar.classList.remove('open');
+        updateToggleIcon();
     });
 }
 
@@ -76,10 +78,6 @@ if (promptElement) {
             generateCode();
         }
     });
-}
-
-if (sendButton) {
-    sendButton.addEventListener('click', generateCode);
 }
 
 if (closeModalButton) {
@@ -116,11 +114,11 @@ if (copyConnectionButton) {
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const tabName = tab.getAttribute('data-tab') || '';
-        
+
         // Update active tab
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        
+
         // Show selected content
         tabContents.forEach(content => {
             content.classList.add('hidden');
@@ -141,10 +139,10 @@ function startNewChat() {
     if (currentConversation.messages.length > 0) {
         saveConversation(currentConversation);
     }
-    
+
     // Clear chat
     chatMessages.innerHTML = '';
-    
+
     // Add welcome message
     const welcomeMessage = document.createElement('div');
     welcomeMessage.className = 'ai-message message';
@@ -159,7 +157,7 @@ function startNewChat() {
         <p class="mt-2">Your projects can include Supabase integration for backend functionality.</p>
     `;
     chatMessages.appendChild(welcomeMessage);
-    
+
     // Reset current conversation
     currentConversation = {
         id: generateId(),
@@ -172,38 +170,38 @@ function startNewChat() {
         model: modelSelect.value,
         temperature: parseFloat(temperatureSlider.value)
     };
-    
+
     // Clear input
     promptElement.value = '';
     sidebar.classList.remove('open');
 }
 
-window.openProjectModal = function(conversation) {
+window.openProjectModal = function (conversation) {
     // Set project title
     const modalProjectTitle = document.getElementById('modalProjectTitle');
     modalProjectTitle.textContent = conversation.title;
-    
+
     // Set code content
     const codeContent = document.getElementById('codeContent');
     codeContent.textContent = conversation.code || 'No code available';
-    
+
     // Set schema setup
     const schemaSetup = document.getElementById('schemaSetup');
     schemaSetup.textContent = conversation.schema || 'No schema available';
-    
+
     // Set environment setup
     const envSetup = document.getElementById('envSetup');
     envSetup.textContent = conversation.env || 'No environment variables available';
-    
+
     // Set connection code
     const connectionCode = document.getElementById('connectionCode');
     connectionCode.textContent = conversation.connection || 'No connection code available';
-    
+
     // Reset to code tab
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => tab.classList.remove('active'));
     document.querySelector('[data-tab="code"]').classList.add('active');
-    
+
     const tabContents = document.querySelectorAll('.tab-content');
     tabContents.forEach(content => {
         content.classList.add('hidden');
@@ -211,94 +209,103 @@ window.openProjectModal = function(conversation) {
             content.classList.remove('hidden');
         }
     });
-    
+
     // Show modal
     const projectViewModal = document.getElementById('projectViewModal');
     projectViewModal.classList.add('visible');
 };
 
-window.generateCode = async function() {
+function updateToggleIcon() {
+    const icon = sidebarToggle.querySelector('i');
+    if (sidebar.classList.contains('open')) {
+        icon.className = 'fa-solid fa-xmark';
+    } else {
+        icon.className = 'fa-solid fa-bars';
+    }
+}
+
+window.generateCode = async function () {
     const promptElement = document.getElementById('prompt');
     const message = promptElement.value.trim();
-    
+
     if (!message) {
         alert('Please enter a prompt.');
         return;
     }
-    
+
     // Get UI elements
     const sendButton = document.getElementById('sendButton');
     const chatMessages = document.getElementById('chatMessages');
     const modelSelect = document.getElementById('modelSelect');
     const temperatureSlider = document.getElementById('temperatureSlider');
-    
+
     // Disable input during processing
     promptElement.disabled = true;
     sendButton.classList.add('disabled');
-    
+
     // Add user message to UI
     const userMessageElement = document.createElement('div');
     userMessageElement.className = 'user-message message';
     userMessageElement.innerHTML = message.replace(/\n/g, '<br>');
     chatMessages.appendChild(userMessageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     // Add to conversation history
     if (window.currentConversation) {
         window.currentConversation.messages.push({
             role: 'user',
             content: message
         });
-        
+
         // Set conversation title based on first message
         if (window.currentConversation.messages.length === 1) {
-            window.currentConversation.title = message.length > 30 
-                ? message.substring(0, 30) + '...' 
+            window.currentConversation.title = message.length > 30
+                ? message.substring(0, 30) + '...'
                 : message;
         }
     }
-    
+
     // Clear input
     promptElement.value = '';
-    
+
     // Add AI thinking indicator
     const aiMessageElement = document.createElement('div');
     aiMessageElement.className = 'ai-message message';
     aiMessageElement.innerHTML = '<div class="spinner"></div>';
     chatMessages.appendChild(aiMessageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+
     try {
         // Get current settings
         const model = modelSelect.value;
         const temperature = parseFloat(temperatureSlider.value);
-        
+
         // Update conversation settings if available
         if (window.currentConversation) {
             window.currentConversation.model = model;
             window.currentConversation.temperature = temperature;
         }
-        
+
         console.log(`Generating code with model: ${model}, temperature: ${temperature}`);
         console.log(`Prompt: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
-        
+
         // Try both endpoints with better error handling
         let response = null;
         let lastError = null;
-        
+
         // First try the direct endpoint
         try {
             console.log('Attempting to use /generate endpoint...');
             response = await fetch('/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     prompt: message,
                     model: model,
                     temperature: temperature
                 })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status}: ${response.statusText}`);
             }
@@ -306,24 +313,24 @@ window.generateCode = async function() {
             // Log the error but don't fail yet
             console.warn('Error with direct endpoint:', error);
             lastError = error;
-            
+
             // Try the API path as a fallback
             try {
                 console.log('Falling back to /api/generate endpoint...');
                 response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         prompt: message,
                         model: model,
                         temperature: temperature
                     })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
-                
+
                 // If we get here, we've successfully recovered
                 lastError = null;
             } catch (apiError) {
@@ -332,28 +339,28 @@ window.generateCode = async function() {
                 lastError = lastError || apiError;
             }
         }
-        
+
         // If we still have an error after trying both endpoints, throw it
         if (lastError) {
             throw lastError;
         }
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             throw new Error('Response is not JSON. Make sure your server is properly set up.');
         }
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
             throw new Error(data.error);
         }
-        
+
         console.log('Successfully received response from API');
-        
+
         // Process response
         const aiMessage = data.code;
-        
+
         // Add to conversation history if available
         if (window.currentConversation) {
             window.currentConversation.messages.push({
@@ -361,16 +368,16 @@ window.generateCode = async function() {
                 content: aiMessage
             });
         }
-        
+
         // Process content to handle code blocks
         const processedContent = aiMessage.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
             const lang = language || 'plaintext';
             return `<div class="code-block" data-language="${lang}">${escapeHtml(code.trim())}</div>`;
         }).replace(/\n/g, '<br>');
-        
+
         // Update the AI message in the UI
         aiMessageElement.innerHTML = processedContent;
-        
+
         // Add copy buttons to code blocks
         const codeBlocks = aiMessageElement.querySelectorAll('.code-block');
         codeBlocks.forEach(block => {
@@ -388,15 +395,15 @@ window.generateCode = async function() {
             });
             block.appendChild(copyBtn);
         });
-        
+
         // If extractCodeBlocks and currentConversation exist, handle code extraction
         if (typeof window.extractCodeBlocks === 'function' && window.currentConversation) {
             const codeBlocks = window.extractCodeBlocks(aiMessage);
-            
+
             if (codeBlocks.length > 0) {
                 // Set the main code
                 window.currentConversation.code = codeBlocks[0].code;
-                
+
                 // Add view project button if code was generated
                 if (window.currentConversation.code) {
                     const viewProjectBtn = document.createElement('button');
@@ -411,17 +418,17 @@ window.generateCode = async function() {
                 }
             }
         }
-        
+
         // Save conversation if the function exists
         if (typeof window.saveConversation === 'function' && window.currentConversation) {
             window.saveConversation(window.currentConversation);
         }
-        
+
         // Update the history sidebar if the function exists
         if (typeof window.loadConversationHistory === 'function') {
             window.loadConversationHistory();
         }
-        
+
     } catch (error) {
         console.error('Error generating code:', error);
         aiMessageElement.innerHTML = `Error: ${error.message}. Please make sure your server is running correctly and the API key is configured.`;
@@ -434,6 +441,9 @@ window.generateCode = async function() {
     }
 };
 
+if (sendButton) {
+    sendButton.addEventListener('click', generateCode);
+}
 
 function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
@@ -448,7 +458,7 @@ function updateAIMessage(messageElement, content) {
     // Process content to handle code blocks
     const processedContent = processMessageContent(content);
     messageElement.innerHTML = processedContent;
-    
+
     // Add copy buttons to code blocks
     const codeBlocks = messageElement.querySelectorAll('.code-block');
     codeBlocks.forEach(block => {
@@ -460,7 +470,7 @@ function updateAIMessage(messageElement, content) {
         });
         block.appendChild(copyBtn);
     });
-    
+
     // Add view project button if code was generated
     if (currentConversation.code) {
         const viewProjectBtn = document.createElement('button');
@@ -485,14 +495,14 @@ function extractCodeBlocks(content) {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const codeBlocks = [];
     let match;
-    
+
     while ((match = codeBlockRegex.exec(content)) !== null) {
         codeBlocks.push({
             language: match[1] || 'plaintext',
             code: match[2].trim()
         });
     }
-    
+
     return codeBlocks;
 }
 
@@ -537,30 +547,30 @@ function openProjectModal(conversation) {
     // Set project title
     const modalProjectTitle = document.getElementById('modalProjectTitle');
     modalProjectTitle.textContent = conversation.title;
-    
+
     // Set code content
     codeContent.textContent = conversation.code || 'No code available';
-    
+
     // Set schema setup
     schemaSetup.textContent = conversation.schema || 'No schema available';
-    
+
     // Set environment setup
     envSetup.textContent = conversation.env || 'No environment variables available';
-    
+
     // Set connection code
     connectionCode.textContent = conversation.connection || 'No connection code available';
-    
+
     // Reset to code tab
     tabs.forEach(tab => tab.classList.remove('active'));
     document.querySelector('[data-tab="code"]').classList.add('active');
-    
+
     tabContents.forEach(content => {
         content.classList.add('hidden');
         if (content.id === 'codeTab') {
             content.classList.remove('hidden');
         }
     });
-    
+
     // Show modal
     projectViewModal.classList.add('visible');
 }
@@ -571,24 +581,24 @@ function generateId() {
 }
 
 // Helper function for escaping HTML
-window.escapeHtml = function(html) {
+window.escapeHtml = function (html) {
     const div = document.createElement('div');
     div.textContent = html;
     return div.innerHTML;
 };
 
-window.extractCodeBlocks = function(content) {
+window.extractCodeBlocks = function (content) {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const codeBlocks = [];
     let match;
-    
+
     while ((match = codeBlockRegex.exec(content)) !== null) {
         codeBlocks.push({
             language: match[1] || 'plaintext',
             code: match[2].trim()
         });
     }
-    
+
     return codeBlocks;
 };
 
@@ -608,14 +618,14 @@ async function saveConversation(conversation) {
     try {
         // Check if Supabase is available (using the global variable from index.html)
         const supabase = window.supabaseClient;
-        
+
         if (supabase) {
             try {
                 // Get current user
                 const { data: { user } } = await supabase.auth.getUser();
-                
+
                 const userId = user ? user.id : 'anonymous';
-                
+
                 // Save to Supabase
                 const { data, error } = await supabase
                     .from('conversations')
@@ -636,9 +646,9 @@ async function saveConversation(conversation) {
                         }
                     ])
                     .select();
-                
+
                 if (error) throw error;
-                
+
                 return data;
             } catch (error) {
                 console.error('Supabase error:', error);
@@ -660,41 +670,41 @@ async function loadConversationHistory() {
     try {
         // Check if Supabase is available (using the global variable from index.html)
         const supabase = window.supabaseClient;
-        
+
         if (supabase) {
             try {
                 // Try to get current user
                 const { data, error } = await supabase.auth.getUser();
-                
+
                 if (error || !data.user) {
                     // Create anonymous session
                     console.log('No authenticated user, creating anonymous session');
                     const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
-                    
+
                     if (signInError) {
                         console.error('Error creating anonymous session:', signInError);
                         loadLocalConversations();
                         return;
                     }
                 }
-                
+
                 // Now we should have a user (anonymous or authenticated)
                 const { data: userData } = await supabase.auth.getUser();
                 const userId = userData.user ? userData.user.id : 'anonymous';
-                
+
                 // Get conversations from Supabase
                 const { data: conversationsData, error: conversationsError } = await supabase
                     .from('conversations')
                     .select('*')
                     .eq('user_id', userId)
                     .order('updated_at', { ascending: false });
-                
+
                 if (conversationsError) {
                     console.error('Error fetching conversations:', conversationsError);
                     loadLocalConversations();
                     return;
                 }
-                
+
                 if (conversationsData && conversationsData.length > 0) {
                     renderConversationHistory(conversationsData);
                 } else {
@@ -718,7 +728,7 @@ async function loadConversationHistory() {
 
 function loadLocalConversations() {
     const conversations = [];
-    
+
     // Get all items from localStorage
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -731,7 +741,7 @@ function loadLocalConversations() {
             }
         }
     }
-    
+
     if (conversations.length > 0) {
         // Sort by latest first (assuming id is timestamp-based)
         conversations.sort((a, b) => parseInt(b.id, 36) - parseInt(a.id, 36));
@@ -745,12 +755,12 @@ function loadLocalConversations() {
 
 function renderConversationHistory(conversations) {
     projectHistory.innerHTML = '';
-    
+
     if (conversations.length === 0) {
         projectHistory.appendChild(noHistoryMessage);
         return;
     }
-    
+
     conversations.forEach(conversation => {
         const historyItem = document.createElement('div');
         historyItem.className = 'project-card';
@@ -764,12 +774,12 @@ function renderConversationHistory(conversations) {
                 </div>
             </div>
         `;
-        
+
         historyItem.addEventListener('click', () => {
             loadConversation(conversation);
             sidebar.classList.remove('open');
         });
-        
+
         projectHistory.appendChild(historyItem);
     });
 }
@@ -779,13 +789,13 @@ async function loadConversation(conversation) {
     if (currentConversation.messages.length > 0) {
         await saveConversation(currentConversation);
     }
-    
+
     // Set current conversation
     currentConversation = conversation;
-    
+
     // Clear chat area
     chatMessages.innerHTML = '';
-    
+
     // Render messages
     conversation.messages.forEach(message => {
         if (message.role === 'user') {
@@ -795,9 +805,11 @@ async function loadConversation(conversation) {
             updateAIMessage(messageElement, message.content);
         }
     });
-    
+
     // Update UI elements
     modelSelect.value = conversation.model || modelSelect.value;
     temperatureSlider.value = conversation.temperature ? conversation.temperature.toString() : temperatureSlider.value;
     temperatureValue.textContent = temperatureSlider.value;
 }
+
+updateToggleIcon();
