@@ -221,19 +221,37 @@ async function generateCode() {
         currentConversation.temperature = temperature;
         
         // Generate response using the appropriate API URL
-        const apiUrl = window.location.origin + '/api/generate';
+        // First try the simple endpoint, then fall back to API path
+        let apiUrl = '/generate';
         
         console.log(`Sending request to: ${apiUrl}`);
         
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                prompt: message,
-                model: model,
-                temperature: temperature
-            })
-        });
+        // Attempt the request
+        let response;
+        try {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    prompt: message,
+                    model: model,
+                    temperature: temperature
+                })
+            });
+        } catch (fetchError) {
+            console.warn(`Error with initial endpoint, trying alternative: ${fetchError.message}`);
+            // Try the alternative API path
+            apiUrl = '/api/generate';
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    prompt: message,
+                    model: model,
+                    temperature: temperature
+                })
+            });
+        }
         
         if (!response.ok) {
             throw new Error(`Server returned ${response.status}: ${response.statusText}`);
@@ -270,7 +288,7 @@ async function generateCode() {
             if (codeBlocks.length > 1) {
                 // Look for SQL schema
                 const sqlBlock = codeBlocks.find(block => 
-                    block.language.toLowerCase() === 'sql' || 
+                    block.language && block.language.toLowerCase() === 'sql' || 
                     block.code.toLowerCase().includes('create table'));
                 
                 if (sqlBlock) {
@@ -335,6 +353,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)`;
         sendButton.classList.remove('disabled');
     }
 }
+
 
 function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');

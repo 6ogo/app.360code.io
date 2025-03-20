@@ -55,9 +55,9 @@ if (supabaseUrl && supabaseKey) {
 function injectCredentialsIntoHTML(htmlContent) {
     let modifiedHtml = htmlContent;
     modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${supabaseUrl || ''}'`);
-    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_KEY__'/g, `'${supabaseKey || ''}'`);
+    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_ANON_KEY__'/g, `'${supabaseKey || ''}'`); // Fixed placeholder name
     return modifiedHtml;
-  }
+}
     
 // Serve static files EXCEPT for index.html (we'll handle that separately)
 app.use(express.static(path.join(__dirname, 'public'), {

@@ -16,6 +16,10 @@
       "dest": "/api/generate.js"
     },
     {
+      "src": "/generate",
+      "dest": "/api/generate.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },
