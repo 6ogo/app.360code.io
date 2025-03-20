@@ -14,7 +14,7 @@
       "@remix-run/cloudflare": "^2.16.2",
       "@supabase/ssr": "^0.6.1",
       "@supabase/supabase-js": "^2.49.1",
-      "@tailwindcss/postcss": "^0.1.2",
+      "@tailwindcss/postcss": "^4.0.0",
       "@webcontainer/api": "^1.5.1-internal.10",
       "ai": "^4.1.66",
       "groq-sdk": "^0.15.0",
