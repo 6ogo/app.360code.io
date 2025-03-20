@@ -178,6 +178,45 @@ function startNewChat() {
     sidebar.classList.remove('open');
 }
 
+window.openProjectModal = function(conversation) {
+    // Set project title
+    const modalProjectTitle = document.getElementById('modalProjectTitle');
+    modalProjectTitle.textContent = conversation.title;
+    
+    // Set code content
+    const codeContent = document.getElementById('codeContent');
+    codeContent.textContent = conversation.code || 'No code available';
+    
+    // Set schema setup
+    const schemaSetup = document.getElementById('schemaSetup');
+    schemaSetup.textContent = conversation.schema || 'No schema available';
+    
+    // Set environment setup
+    const envSetup = document.getElementById('envSetup');
+    envSetup.textContent = conversation.env || 'No environment variables available';
+    
+    // Set connection code
+    const connectionCode = document.getElementById('connectionCode');
+    connectionCode.textContent = conversation.connection || 'No connection code available';
+    
+    // Reset to code tab
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    document.querySelector('[data-tab="code"]').classList.add('active');
+    
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.classList.add('hidden');
+        if (content.id === 'codeTab') {
+            content.classList.remove('hidden');
+        }
+    });
+    
+    // Show modal
+    const projectViewModal = document.getElementById('projectViewModal');
+    projectViewModal.classList.add('visible');
+};
+
 window.generateCode = async function() {
     const promptElement = document.getElementById('prompt');
     const message = promptElement.value.trim();
@@ -358,9 +397,6 @@ window.generateCode = async function() {
                 // Set the main code
                 window.currentConversation.code = codeBlocks[0].code;
                 
-                // Extract other code blocks if needed...
-                // [Rest of the code extraction logic]
-                
                 // Add view project button if code was generated
                 if (window.currentConversation.code) {
                     const viewProjectBtn = document.createElement('button');
@@ -397,6 +433,7 @@ window.generateCode = async function() {
         }
     }
 };
+
 
 function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
@@ -534,11 +571,26 @@ function generateId() {
 }
 
 // Helper function for escaping HTML
-function escapeHtml(html) {
+window.escapeHtml = function(html) {
     const div = document.createElement('div');
     div.textContent = html;
     return div.innerHTML;
-}
+};
+
+window.extractCodeBlocks = function(content) {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const codeBlocks = [];
+    let match;
+    
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+        codeBlocks.push({
+            language: match[1] || 'plaintext',
+            code: match[2].trim()
+        });
+    }
+    
+    return codeBlocks;
+};
 
 // Helper function for copying text to clipboard
 function copyTextToClipboard(text) {

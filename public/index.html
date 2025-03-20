@@ -25,11 +25,11 @@
             <div class="sidebar-header">
                 <div class="sidebar-brand">
                     <div class="logo-container">
-                        <div class="logo-bg"></div>
-                        <i class="fas fa-code logo-icon"></i>
+                        <img src="/logo.svg" alt="360code.io Logo" class="logo-img" style="width: 32px; height: 32px;">
                     </div>
                     <span class="brand-text">360code.io</span>
                 </div>
+
                 <button id="closeSidebar" class="md:hidden text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times"></i>
                 </button>
@@ -253,39 +253,39 @@
     </script>
 
     <!-- Add event listeners to handle the UI interactions -->
-<!-- Initialize Supabase -->
-<script>
-    // More robust Supabase initialization
-    const supabaseUrl = '__SUPABASE_URL__';
-    const supabaseKey = '__SUPABASE_ANON_KEY__';
-    let supabaseClient = null;
+    <!-- Initialize Supabase -->
+    <script>
+        // Define variables first
+        const supabaseUrl = '__SUPABASE_URL__';
+        const supabaseKey = '__SUPABASE_ANON_KEY__';
+        let supabaseClient = null;
 
-    // Check if values were properly injected and are valid
-    if (supabaseUrl && supabaseKey && 
-        supabaseUrl !== '__SUPABASE_URL__' && 
-        supabaseKey !== '__SUPABASE_ANON_KEY__') {
-        try {
-            console.log('Initializing Supabase with provided credentials');
-            // Access the global supabase object from the imported library
-            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-            console.log('Supabase initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
+        // Check if values were properly injected and are valid
+        if (supabaseUrl && supabaseKey &&
+            supabaseUrl !== '__SUPABASE_URL__' &&
+            supabaseKey !== '__SUPABASE_ANON_KEY__') {
+            try {
+                console.log('Initializing Supabase with provided credentials');
+                // Access the global supabase object from the imported library
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+            }
+        } else {
+            console.log('Supabase credentials not available, will use localStorage for storage');
         }
-    } else {
-        console.log('Supabase credentials not available, will use localStorage for storage');
-    }
 
-    // Make supabase client available globally
-    window.supabaseClient = supabaseClient;
-    
-    // Debug info
-    console.log('Supabase URL detection:', {
-        'defined': Boolean(supabaseUrl),
-        'non-empty': Boolean(supabaseUrl && supabaseUrl.length > 0),
-        'not-placeholder': supabaseUrl !== '__SUPABASE_URL__'
-    });
-</script>
+        // Make supabase client available globally
+        window.supabaseClient = supabaseClient;
+
+        // Debug info
+        console.log('Supabase URL detection:', {
+            'defined': Boolean(supabaseUrl),
+            'non-empty': Boolean(supabaseUrl && supabaseUrl.length > 0),
+            'not-placeholder': supabaseUrl !== '__SUPABASE_URL__'
+        });
+    </script>
 
     <!-- Load the initialization script first -->
     <script src="/js/main.js"></script>
