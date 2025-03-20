@@ -1,5 +1,5 @@
 // lib/.server/llm/stream-text.ts
-import { StreamingTextResponse, Message as AIMessage } from 'ai';
+import { Message as AIMessage } from 'ai';
 import { getAPIKey } from '@/lib/.server/llm/api-key';
 import { getGroqModel } from '@/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';
@@ -21,7 +21,7 @@ export interface Message {
 export type Messages = Message[];
 
 export interface StreamResult {
-  toResponseStream: () => ReadableStream;
+  toResponseStream: () => Response;
   toAIStream: () => ReadableStream;
   extractText: () => Promise<{ text: string; finishReason: string | null }>;
 }
@@ -34,6 +34,16 @@ export type StreamingOptions = {
   toolChoice?: 'none' | 'auto';
   onFinish?: (result: { text: string; finishReason: string | null }) => Promise<void>;
 };
+
+export class StreamingTextResponse extends Response {
+  constructor(stream: ReadableStream) {
+    super(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
+  }
+}
 
 export async function streamText(
   messages: Messages | AIMessage[], 
@@ -144,7 +154,7 @@ export async function streamText(
               }
             }
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Stream reading error:', error);
           controller.error(error);
         }

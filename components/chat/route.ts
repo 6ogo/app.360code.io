@@ -1,10 +1,9 @@
-// app/api/chat/route.ts
-import { StreamingTextResponse, Message } from 'ai';
-import { streamText } from '@/lib/.server/llm/stream-text';
+import { NextRequest, NextResponse } from 'next/server';
+import { Message } from 'ai';
+import { streamText, StreamingTextResponse } from '@/lib/.server/llm/stream-text';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '@/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '@/lib/.server/llm/prompts';
-import { fileModificationsToHTML } from '../utils/diff';
-import { NextRequest, NextResponse } from 'next/server';
+import { fileModificationsToHTML } from '../../components/utils/diff';
 import SwitchableStream from '@/lib/.server/llm/switchable-stream';
 
 // Global store for file modifications (in a real app, use a more robust solution)
@@ -72,7 +71,12 @@ export async function POST(req: NextRequest) {
       
       stream.switchSource(result.toAIStream());
       
-      return new StreamingTextResponse(stream.readable);
+      return new Response(stream.readable, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8'
+        }
+      });
     } catch (error) {
       console.error('Error in chat API:', error);
       stream.close();

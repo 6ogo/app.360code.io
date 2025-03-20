@@ -33,11 +33,15 @@ declare global {
     }
   }
   
-  // For the workbench store
+  // For the workbench store - commenting out to avoid redeclaration
+  // This is now defined in the workbench.ts file directly
+  /*
   declare module '@/lib/stores/workbench' {
     import { map } from 'nanostores';
     
-    export type FileMap = Record<string, string>;
+    export interface FileMapType {
+      [path: string]: string;
+    }
     
     export interface WorkbenchState {
       files: Map<string, string>;
@@ -45,11 +49,15 @@ declare global {
     }
     
     export const workbenchStore: {
-      files: ReturnType<typeof map<FileMap>>;
+      files: ReturnType<typeof map<FileMapType>>;
       getFileModifcations: () => Record<string, string[]> | null;
       resetAllFileModifications: () => void;
+      addFile: (path: string, content: string) => void;
+      updateFile: (path: string, content: string) => void;
+      deleteFile: (path: string) => void;
     };
   }
+  */
   
   // To make TypeScript treat this as a module
   export {};

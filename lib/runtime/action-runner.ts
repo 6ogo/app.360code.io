@@ -38,9 +38,13 @@ export class ActionRunner {
       const webcontainer = await this.#webcontainer;
       
       if (data.action.type === 'file') {
-        await this.#writeFile(webcontainer, data.action.filePath, data.action.content);
+        if (data.action.filePath) {
+          await this.#writeFile(webcontainer, data.action.filePath, data.action.content || '');
+        } else {
+          logger.error('File action requires a filePath');
+        }
       } else if (data.action.type === 'shell') {
-        await this.#runShellCommand(webcontainer, data.action.content);
+        await this.#runShellCommand(webcontainer, data.action.content || '');
       }
     } catch (error) {
       logger.error(`Failed to run action ${actionId}:`, error);

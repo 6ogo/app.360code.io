@@ -1,12 +1,15 @@
 import { map } from 'nanostores';
 
-export type FileMap = Record<string, string>;
+// Define types locally to avoid conflicts with environment.d.ts
+export interface FileMapType {
+  [path: string]: string;
+}
 
 interface WorkbenchState {
   fileModifications: Record<string, string[]>;
 }
 
-const files = map<FileMap>({});
+const files = map<FileMapType>({});
 const state = map<WorkbenchState>({
   fileModifications: {}
 });

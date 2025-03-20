@@ -1,83 +1,94 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '../lib/.server/llm/constants';
-import { CONTINUE_PROMPT } from '../lib/.server/llm/prompts';
-import { streamText, type Messages, type StreamingOptions } from '../lib/.server/llm/stream-text';
-import SwitchableStream from '../lib/.server/llm/switchable-stream';
-import { fileModificationsToHTML } from '../utils/diff';
-import { workbenchStore } from '../lib/stores/workbench';
+import { NextRequest, NextResponse } from 'next/server';
+import { Message } from 'ai';
+import { streamText } from '@/lib/.server/llm/stream-text';
+import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '@/lib/.server/llm/constants';
+import { CONTINUE_PROMPT } from '@/lib/.server/llm/prompts';
+import { fileModificationsToHTML } from '../../components/utils/diff';
+import SwitchableStream from '@/lib/.server/llm/switchable-stream';
 
-export async function action(args: ActionFunctionArgs) {
-  return chatAction(args);
+// Global store for file modifications (in a real app, use a more robust solution)
+let fileModifications: Record<string, string[]> | null = null;
+
+export async function POST(req: NextRequest) {
+  try {
+    const { messages } = await req.json() as { messages: Message[] };
+    
+    // Include file modifications in the user message if available
+    if (fileModifications && messages.length > 0) {
+      const lastUserMessageIndex = [...messages].reverse().findIndex(m => m.role === 'user');
+      
+      if (lastUserMessageIndex >= 0) {
+        const actualIndex = messages.length - 1 - lastUserMessageIndex;
+        const fileModificationsHTML = fileModificationsToHTML(fileModifications);
+        
+        messages[actualIndex] = {
+          ...messages[actualIndex],
+          content: `${fileModificationsHTML}\n\n${messages[actualIndex].content}`
+        };
+        
+        // Reset file modifications after they've been sent
+        fileModifications = null;
+      }
+    }
+    
+    const stream = new SwitchableStream();
+    
+    try {
+      const env = {
+        GROQ_API_KEY: process.env.GROQ_API_KEY || '',
+      };
+      
+      const options = {
+        maxTokens: MAX_TOKENS,
+        toolChoice: 'none' as const,
+        onFinish: async ({ text, finishReason }: { text: string; finishReason: string | null }) => {
+          if (finishReason !== 'length') {
+            return stream.close();
+          }
+          
+          if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+            throw new Error('Cannot continue message: Maximum segments reached');
+          }
+          
+          const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+          
+          console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
+          
+          // Add the current completion and continue prompt to messages
+          const newMessages = [
+            ...messages,
+            { id: Date.now().toString(), role: 'assistant' as const, content: text },
+            { id: (Date.now() + 1).toString(), role: 'user' as const, content: CONTINUE_PROMPT }
+          ];
+          
+          const result = await streamText(newMessages, env, options);
+          
+          return stream.switchSource(result.toAIStream());
+        }
+      };
+      
+      const result = await streamText(messages, env, options);
+      
+      stream.switchSource(result.toAIStream());
+      
+      return new Response(stream.readable, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8'
+        }
+      });
+    } catch (error) {
+      console.error('Error in chat API:', error);
+      stream.close();
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('Request parsing error:', error);
+    return NextResponse.json({ error: 'Bad Request' }, { status: 400 });
+  }
 }
 
-async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{ messages: Messages }>();
-
-  // Get any file modifications to include in the context
-  const fileModifications = workbenchStore.getFileModifcations();
-  const fileModificationsHTML = fileModifications ? fileModificationsToHTML(fileModifications) : undefined;
-
-  // Include file modifications in the user message if available
-  if (fileModificationsHTML && messages.length > 0) {
-    const lastUserMessageIndex = [...messages].reverse().findIndex(m => m.role === 'user');
-    
-    if (lastUserMessageIndex >= 0) {
-      const actualIndex = messages.length - 1 - lastUserMessageIndex;
-      messages[actualIndex] = {
-        ...messages[actualIndex],
-        content: `${fileModificationsHTML}\n\n${messages[actualIndex].content}`
-      };
-    }
-  }
-
-  const stream = new SwitchableStream();
-
-  try {
-    const options: StreamingOptions = {
-      toolChoice: 'none',
-      onFinish: async ({ text: content, finishReason }) => {
-        if (finishReason !== 'length') {
-          return stream.close();
-        }
-
-        if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-          throw Error('Cannot continue message: Maximum segments reached');
-        }
-
-        const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
-
-        console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
-
-        messages.push({ role: 'assistant', content });
-        messages.push({ role: 'user', content: CONTINUE_PROMPT });
-
-        const result = await streamText(messages, context.cloudflare.env, options);
-
-        return stream.switchSource(result.toAIStream());
-      },
-    };
-
-    const result = await streamText(messages, context.cloudflare.env, options);
-
-    // Reset file modifications after they've been sent
-    if (fileModifications) {
-      workbenchStore.resetAllFileModifications();
-    }
-
-    stream.switchSource(result.toAIStream());
-
-    return new Response(stream.readable, {
-      status: 200,
-      headers: {
-        contentType: 'text/plain; charset=utf-8',
-      },
-    });
-  } catch (error) {
-    console.log(error);
-
-    throw new Response(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
-  }
+// Helper function to set file modifications from client-side
+export function setFileModifications(mods: Record<string, string[]>) {
+  fileModifications = mods;
 }
