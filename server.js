@@ -55,7 +55,6 @@ if (supabaseUrl && supabaseKey) {
 function injectCredentialsIntoHTML(htmlContent) {
     let modifiedHtml = htmlContent;
     
-    // Only inject if we have actual values (not undefined or empty)
     if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.trim() !== '') {
         console.log(`Injecting SUPABASE_URL: ${process.env.SUPABASE_URL.substring(0, 10)}...`);
         modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${process.env.SUPABASE_URL}'`);
@@ -72,7 +71,7 @@ function injectCredentialsIntoHTML(htmlContent) {
     
     return modifiedHtml;
 }
-    
+
 // Serve static files EXCEPT for index.html (we'll handle that separately)
 app.use(express.static(path.join(__dirname, 'public'), {
     index: false  // Don't auto-serve index.html

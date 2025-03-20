@@ -209,7 +209,7 @@ async function generateCode(): Promise<void> {
         alert('Please enter a prompt.');
         return;
     }
-    
+
     // Disable input during processing
     promptElement.disabled = true;
     sendButton.classList.add('disabled');
