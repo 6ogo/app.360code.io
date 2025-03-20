@@ -65,6 +65,9 @@ body {
     .sidebar {
         transform: translateX(0); /* Always visible on desktop */
     }
+    .main-content {
+        margin-left: 250px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -551,11 +554,13 @@ body {
     transition: opacity 0.3s, visibility 0.3s;
     opacity: 0;
     visibility: hidden;
+    display: none;
 }
 
 .modal-overlay.visible {
     opacity: 1;
     visibility: visible;
+    display: flex;
 }
 
 .modal-container {

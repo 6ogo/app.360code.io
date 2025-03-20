@@ -11,6 +11,7 @@ dotenv.config();
 // Initialize Express
 const app = express();
 app.use(express.json());
+app.use(express.static('public'));
 
 // Debug: Print environment variables
 console.log('Environment variables:');
@@ -46,20 +47,14 @@ if (supabaseUrl && supabaseKey) {
     }
 }
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Serve index.html with injected credentials
 app.get('/', (req, res) => {
-    const filePath = path.join(__dirname, 'public', 'index.html');
-    let html = fs.readFileSync(filePath, 'utf8');
-    if (process.env.SUPABASE_URL) {
-        html = html.replace(/'__SUPABASE_URL__'/g, `'${process.env.SUPABASE_URL}'`);
-    }
-    if (process.env.SUPABASE_ANON_KEY) {
-        html = html.replace(/'__SUPABASE_ANON_KEY__'/g, `'${process.env.SUPABASE_ANON_KEY}'`);
-    }
-    res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), {
+        headers: {
+            'SUPABASE_URL': process.env.SUPABASE_URL,
+            'SUPABASE_ANON_KEY': process.env.SUPABASE_ANON_KEY
+        }
+    });
 });
 
 // Generate code endpoint

@@ -1,68 +1,36 @@
-// Initialize app and fix critical UI elements
-document.addEventListener('DOMContentLoaded', function() {    
+// Initialize app and handle UI interactions
+document.addEventListener('DOMContentLoaded', function () {
+    // Sidebar toggle for mobile
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.querySelector('#sidebarToggle');
+    const closeSidebar = document.querySelector('#closeSidebar');
 
-    // Add CSS for improved sidebar toggle behavior
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Improved sidebar behavior */
-        .sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .sidebar.open {
-            transform: translateX(0);
-        }
-        
-        /* Better toggle button styling */
-        #sidebarToggle {
-            background: none;
-            border: none;
-            color: hsl(var(--foreground));
-            font-size: 1.25rem;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        #sidebarToggle:hover {
-            background-color: hsla(var(--secondary) / 0.2);
-        }
-        
-        /* On desktop, keep sidebar visible and main content adjusted */
-        @media (min-width: 769px) {
-            .sidebar {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 280px;
-            }
-        }
-        
-        /* On mobile, hide sidebar by default and overlay when open */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                z-index: 100;
-            }
-            
-            .sidebar.open {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            #sidebarToggle {
-                display: flex;
-            }
-        }
-    `;
-    document.head.appendChild(style);
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.add('open');
+        });
+    }
+
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    }
+
+    // Example: Modal toggle (if you have a button to open it)
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const openModalBtn = document.querySelector('.new-project-btn'); // Adjust selector as needed
+    const closeModalBtn = document.querySelector('.close-modal');
+
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', () => {
+            modalOverlay.classList.add('visible');
+        });
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('visible');
+        });
+    }
 });

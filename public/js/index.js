@@ -81,8 +81,8 @@ if (promptElement) {
 
 if (closeModalButton) {
     closeModalButton.addEventListener('click', () => {
-        projectViewModal.classList.remove('hidden');
-        projectViewModal.classList.add('visible');
+        projectViewModal.classList.remove('visible');
+        projectViewModal.classList.add('hidden');
     });
 }
 
@@ -243,7 +243,24 @@ async function generateCode(prompt, model, temperature) {
 }
 
 if (sendButton) {
-    sendButton.addEventListener('click', generateCode);
+    sendButton.addEventListener('click', () => {
+        const prompt = promptElement.value;
+        const model = modelSelect.value;
+        const temperature = parseFloat(temperatureSlider.value);
+        generateCode(prompt, model, temperature)
+            .then(code => {
+                // Handle the generated code
+                currentConversation.code = code;
+                currentConversation.messages.push({ role: 'user', content: prompt });
+                currentConversation.messages.push({ role: 'assistant', content: code });
+                const messageElement = addMessageToUI('assistant', '');
+                updateAIMessage(messageElement, code);
+                saveConversation(currentConversation);
+            })
+            .catch(error => {
+                addMessageToUI('assistant', `Error generating code: ${error.message}`);
+            });
+    });
 }
 
 function addMessageToUI(role, content) {
