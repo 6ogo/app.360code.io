@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="/favicon.png">
     <title>360code.io - AI-Powered Code Generator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.24.0/dist/umd/supabase.min.js"></script>
     <style>
@@ -276,6 +279,8 @@
 
         .temperature-slider {
             -webkit-appearance: none;
+            appearance: none;
+            /* Add standard property for compatibility */
             width: 6rem;
             height: 4px;
             border-radius: 2px;
@@ -286,6 +291,7 @@
         .temperature-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
+            /* Add standard property for compatibility */
             width: 12px;
             height: 12px;
             border-radius: 50%;
@@ -294,7 +300,19 @@
             transition: transform 0.2s;
         }
 
-        .temperature-slider::-webkit-slider-thumb:hover {
+        .temperature-slider::-moz-range-thumb {
+            /* Add Firefox-specific styles */
+            width: 12px;
+            height: 12px;
+            border: none;
+            border-radius: 50%;
+            background: hsl(var(--primary));
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .temperature-slider::-webkit-slider-thumb:hover,
+        .temperature-slider::-moz-range-thumb:hover {
             transform: scale(1.2);
         }
 
@@ -331,8 +349,15 @@
         }
 
         @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .user-message {
@@ -432,7 +457,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* Input Area */
@@ -526,8 +553,15 @@
         }
 
         @keyframes modal-in {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .modal-header {
@@ -749,8 +783,13 @@
         }
 
         @keyframes pulse {
-            0% { opacity: 0.4; }
-            100% { opacity: 0.7; }
+            0% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 0.7;
+            }
         }
 
         .dot-pattern {
@@ -789,7 +828,7 @@
                     <span>New Project</span>
                 </button>
             </div>
-            
+
             <div class="sidebar-content">
                 <h2 class="sidebar-title">History</h2>
                 <div id="projectHistory" class="project-list">
@@ -798,7 +837,7 @@
                 </div>
             </div>
         </aside>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Top Bar -->
@@ -814,32 +853,36 @@
                     </select>
                     <div class="temperature-control">
                         <span class="temperature-label">Temperature:</span>
-                        <input type="range" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7" class="temperature-slider">
+                        <input type="range" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7"
+                            class="temperature-slider">
                         <span id="temperatureValue" class="temperature-value">0.7</span>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Chat Area -->
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
                     <!-- Welcome message -->
                     <div class="ai-message message">
                         <p class="font-medium">Welcome to 360code.io!</p>
-                        <p style="margin-top: 0.75rem;">I can help you generate code for your projects. Try prompts like:</p>
+                        <p style="margin-top: 0.75rem;">I can help you generate code for your projects. Try prompts
+                            like:</p>
                         <ul style="margin-top: 0.5rem; margin-left: 1.5rem; list-style-type: disc;">
                             <li>"Create a simple snake game"</li>
                             <li>"Build a to-do list app with React"</li>
                             <li>"Generate a landing page for a fitness app"</li>
                         </ul>
-                        <p style="margin-top: 0.75rem;">Your projects can include Supabase integration for backend functionality.</p>
+                        <p style="margin-top: 0.75rem;">Your projects can include Supabase integration for backend
+                            functionality.</p>
                     </div>
                 </div>
-                
+
                 <!-- Input Area -->
                 <div class="input-container">
                     <div class="input-wrapper">
-                        <textarea id="prompt" class="input-box" placeholder="Describe what you want to build..." rows="1"></textarea>
+                        <textarea id="prompt" class="input-box" placeholder="Describe what you want to build..."
+                            rows="1"></textarea>
                         <button id="sendButton" class="send-button">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -847,7 +890,7 @@
                 </div>
             </div>
         </main>
-        
+
         <!-- Project View Modal -->
         <div id="projectViewModal" class="modal-overlay">
             <div class="modal-container">
@@ -857,13 +900,13 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                
+
                 <div class="tabs-container">
                     <div class="tab active" data-tab="code">Code</div>
                     <div class="tab" data-tab="supabase">Supabase Setup</div>
                     <div class="tab" data-tab="deploy">Deployment</div>
                 </div>
-                
+
                 <div id="codeTab" class="tab-content">
                     <pre id="codeContent" class="code-block">
                         <!-- Code will be displayed here -->
@@ -875,7 +918,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div id="supabaseTab" class="tab-content hidden">
                     <div class="info-box">
                         <div class="info-box-content">
@@ -885,15 +928,16 @@
                             </p>
                         </div>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-database icon"></i>
                             1. Create a Supabase Project
                         </h3>
-                        <p>If you haven't already, create a new project at <a href="https://app.supabase.io" target="_blank" class="step-link">supabase.io</a>.</p>
+                        <p>If you haven't already, create a new project at <a href="https://app.supabase.io"
+                                target="_blank" class="step-link">supabase.io</a>.</p>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-table icon"></i>
@@ -906,7 +950,7 @@
                             <i class="fas fa-copy"></i> Copy SQL
                         </a>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-key icon"></i>
@@ -919,7 +963,7 @@
                             <i class="fas fa-copy"></i> Copy Variables
                         </a>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-plug icon"></i>
@@ -933,7 +977,7 @@
                         </a>
                     </div>
                 </div>
-                
+
                 <div id="deployTab" class="tab-content hidden">
                     <div class="info-box">
                         <div class="info-box-content">
@@ -943,7 +987,7 @@
                             </p>
                         </div>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-bolt icon"></i>
@@ -952,13 +996,14 @@
                         <p>The easiest way to deploy your project.</p>
                         <ol class="step-list">
                             <li>Push your code to a GitHub repository</li>
-                            <li>Sign up/in to <a href="https://vercel.com" target="_blank" class="step-link">Vercel</a></li>
+                            <li>Sign up/in to <a href="https://vercel.com" target="_blank" class="step-link">Vercel</a>
+                            </li>
                             <li>Click "New Project" and import your GitHub repository</li>
                             <li>Configure your environment variables</li>
                             <li>Click "Deploy"</li>
                         </ol>
                     </div>
-                    
+
                     <div class="section">
                         <h3 class="section-title">
                             <i class="fas fa-globe icon"></i>
@@ -967,7 +1012,8 @@
                         <p>Another great option for front-end projects.</p>
                         <ol class="step-list">
                             <li>Push your code to a GitHub repository</li>
-                            <li>Sign up/in to <a href="https://netlify.com" target="_blank" class="step-link">Netlify</a></li>
+                            <li>Sign up/in to <a href="https://netlify.com" target="_blank"
+                                    class="step-link">Netlify</a></li>
                             <li>Click "New site from Git" and select your repository</li>
                             <li>Configure your build settings and environment variables</li>
                             <li>Click "Deploy site"</li>
@@ -980,9 +1026,36 @@
 
     <!-- Initialize Supabase -->
     <script>
-        // Initialize Supabase with credentials injected by the server
+        if (supabaseUrl && supabaseKey && supabaseUrl !== '__SUPABASE_URL__' && supabaseKey !== '__SUPABASE_KEY__') {
+            try {
+                // Access the global supabase object from the imported library
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+            }
+        } else {
+            console.log('Supabase credentials not available, will use localStorage for storage');
+        }
+
+        // Make supabase client available globally
+        window.supabaseClient = supabaseClient;
+    </script>
+
+    <!-- Add event listeners to handle the UI interactions -->
+    <script>
+        // Set up textarea auto-resize only (moved other event listeners to main.js)
+        const textarea = document.getElementById('prompt');
+        if (textarea) {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+    
+        // Initialize Supabase
         const supabaseUrl = '__SUPABASE_URL__';
-        const supabaseKey = '__SUPABASE_KEY__';
+        const supabaseKey = '__SUPABASE_ANON_KEY__';
         let supabaseClient = null;
         
         if (supabaseUrl && supabaseKey && supabaseUrl !== '__SUPABASE_URL__' && supabaseKey !== '__SUPABASE_KEY__') {
@@ -1001,60 +1074,11 @@
         window.supabaseClient = supabaseClient;
     </script>
     
-    <!-- Add event listeners to handle the UI interactions -->
-    <script>
-        // Set up the textarea auto-resize
-        const textarea = document.getElementById('prompt');
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.getElementById('sidebar');
-        const closeSidebar = document.getElementById('closeSidebar');
-
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-        });
-
-        closeSidebar.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-        });
-
-        // Modal handling
-        const projectViewModal = document.getElementById('projectViewModal');
-        const closeModalButton = document.getElementById('closeModalButton');
-
-        closeModalButton.addEventListener('click', () => {
-            projectViewModal.classList.remove('visible');
-        });
-
-        // Tab switching
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.getAttribute('data-tab');
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Show selected content
-                tabContents.forEach(content => {
-                    content.classList.add('hidden');
-                    if (content.id === tabName + 'Tab') {
-                        content.classList.remove('hidden');
-                    }
-                });
-            });
-        });
-
-        // The rest of the code for actual app functionality will be loaded from index.js
-    </script>
-    <script src="/js/index.js"></script>
+    <!-- Load the initialization script first -->
+    <script src="/js/main.js"></script>
+    
+    <!-- Then load the compiled JavaScript -->
+    <script src="/js/index.js"></script>    
 </body>
+
 </html>

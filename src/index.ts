@@ -1,5 +1,13 @@
 // API Configuration - Change this to match your actual API URL
-const API_BASE_URL = "https://app.360code.io"; // Change this to your actual API URL
+export {}; // Makes this file a module with its own scope
+
+declare global {
+  interface Window {
+    API_BASE_URL?: string;
+  }
+}
+
+window.API_BASE_URL = "https://app.360code.io"; // Change this to your actual API URL
 
 // Conversation management
 interface Message {
@@ -239,7 +247,7 @@ async function generateCode(): Promise<void> {
         
         // Generate response using the appropriate API URL
         // For local development, use relative path. For production, use the full URL.
-        const apiUrl = API_BASE_URL ? `${API_BASE_URL}/generate` : '/generate';
+        const apiUrl = window.API_BASE_URL ? `${window.API_BASE_URL}/api/generate` : '/api/generate';
         
         console.log(`Sending request to: ${apiUrl}`);
         
