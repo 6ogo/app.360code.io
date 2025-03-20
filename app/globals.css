@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer components {
+  .blue-glow {
+    @apply fixed w-[40vw] h-[40vw] rounded-full z-[-1] blur-[40px];
+    background: radial-gradient(circle, hsla(217, 91%, 60%, 0.15) 0%, hsla(217, 91%, 60%, 0) 70%);
+  }
+
+  .blue-glow.top-right {
+    @apply top-[-10vw] right-[-10vw];
+  }
+
+  .blue-glow.bottom-left {
+    @apply bottom-[-10vw] left-[-10vw] animate-pulse;
+  }
+
+  .dot-pattern {
+    @apply fixed inset-0 z-[-1] pointer-events-none;
+    background-image: radial-gradient(hsla(210, 40%, 98%, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .sidebar {
+    @apply fixed top-0 left-0 w-64 h-full bg-card z-30 transform -translate-x-full transition-transform duration-300 ease-in-out;
+  }
+
+  .sidebar.open {
+    @apply translate-x-0 shadow-lg;
+  }
+
+  .project-card {
+    @apply bg-card/50 border border-border rounded-md p-3 cursor-pointer transition hover:-translate-y-0.5 hover:bg-card/80;
+  }
+
+  .code-block {
+    @apply bg-background/90 text-foreground border border-border rounded p-4 my-3 relative font-mono text-sm whitespace-pre-wrap overflow-x-auto;
+  }
+
+  .copy-button {
+    @apply absolute top-2 right-2 bg-muted/30 rounded w-7 h-7 flex items-center justify-center cursor-pointer transition text-xs text-muted-foreground hover:bg-primary/20 hover:text-foreground;
+  }
+
+  .view-project-btn {
+    @apply bg-gradient-to-r from-primary to-primary-dark text-white rounded px-4 py-2 text-sm font-medium inline-flex items-center gap-2 cursor-pointer transition mt-4 self-start hover:brightness-110 active:translate-y-0.5;
+  }
+
+  .input-box {
+    @apply w-full min-h-12 max-h-48 py-3 pl-4 pr-12 bg-card/50 border border-border rounded text-foreground font-sans text-sm resize-none outline-none transition focus:border-primary focus:shadow-[0_0_0_2px_rgba(59,130,246,0.2)];
+  }
+
+  .auth-submit-btn {
+    @apply w-full bg-gradient-to-r from-primary to-primary-dark text-white border-none rounded-md py-3 font-medium cursor-pointer transition mt-2 hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+
+  .spinner {
+    @apply w-5 h-5 border-2 border-primary/20 rounded-full border-t-primary animate-spin m-auto;
+  }
+
+  .toast {
+    @apply p-3 rounded-md shadow-lg flex items-center gap-2 min-w-[250px] max-w-[350px] text-sm animate-fade-in;
+  }
+
+  .toast-success {
+    @apply bg-green-600 text-white;
+  }
+
+  .toast-error {
+    @apply bg-red-600 text-white;
+  }
+
+  .toast-info {
+    @apply bg-blue-600 text-white;
+  }
+
+  .alert {
+    @apply p-3 rounded-md mb-4 animate-fade-in;
+  }
+
+  .alert-error {
+    @apply bg-red-600/15 border-l-2 border-red-600 text-red-600;
+  }
+
+  .alert-success {
+    @apply bg-green-600/15 border-l-2 border-green-600 text-green-600;
+  }
+
+  .alert-info {
+    @apply bg-blue-600/15 border-l-2 border-blue-600 text-blue-600;
+  }
+}
+
+/* Support for larger screens */
+@media (min-width: 768px) {
+  .sidebar {
+    @apply translate-x-0;
+  }
+
+  .main-content {
+    @apply ml-64;
+  }
+}
