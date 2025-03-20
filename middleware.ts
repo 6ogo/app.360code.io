@@ -12,11 +12,11 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Public routes that don't require authentication
+  // Public routes that dont require authentication
   const publicRoutes = ['/auth', '/auth/callback', '/api/generate']
 
   // Check if the current route is public
-  const isPublicRoute = publicRoutes.some(route => 
+  const isPublicRoute = publicRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
