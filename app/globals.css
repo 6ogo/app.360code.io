@@ -19,3 +19,39 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Toast styling */
+.Toastify__toast {
+  border-radius: 4px;
+  padding: 16px;
+  color: white;
+}
+
+.Toastify__toast--success {
+  background-color: rgba(0, 182, 134, 0.9);
+}
+
+.Toastify__toast--error {
+  background-color: rgba(216, 67, 67, 0.9);
+}
+
+.Toastify__toast--info {
+  background-color: rgba(38, 132, 255, 0.9);
+}
+
+.Toastify__toast--warning {
+  background-color: rgba(255, 155, 40, 0.9);
+}
+
+.Toastify__close-button {
+  color: white;
+  opacity: 0.7;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
+}
+
+.Toastify__progress-bar {
+  background-color: rgba(255, 255, 255, 0.7);
+}
