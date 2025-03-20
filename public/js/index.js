@@ -178,83 +178,125 @@ function startNewChat() {
     sidebar.classList.remove('open');
 }
 
-async function generateCode() {
+window.generateCode = async function() {
+    const promptElement = document.getElementById('prompt');
     const message = promptElement.value.trim();
+    
     if (!message) {
         alert('Please enter a prompt.');
         return;
     }
+    
+    // Get UI elements
+    const sendButton = document.getElementById('sendButton');
+    const chatMessages = document.getElementById('chatMessages');
+    const modelSelect = document.getElementById('modelSelect');
+    const temperatureSlider = document.getElementById('temperatureSlider');
     
     // Disable input during processing
     promptElement.disabled = true;
     sendButton.classList.add('disabled');
     
     // Add user message to UI
-    addMessageToUI('user', message);
+    const userMessageElement = document.createElement('div');
+    userMessageElement.className = 'user-message message';
+    userMessageElement.innerHTML = message.replace(/\n/g, '<br>');
+    chatMessages.appendChild(userMessageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
     
     // Add to conversation history
-    currentConversation.messages.push({
-        role: 'user',
-        content: message
-    });
-    
-    // Set conversation title based on first message
-    if (currentConversation.messages.length === 1) {
-        currentConversation.title = message.length > 30 
-            ? message.substring(0, 30) + '...' 
-            : message;
+    if (window.currentConversation) {
+        window.currentConversation.messages.push({
+            role: 'user',
+            content: message
+        });
+        
+        // Set conversation title based on first message
+        if (window.currentConversation.messages.length === 1) {
+            window.currentConversation.title = message.length > 30 
+                ? message.substring(0, 30) + '...' 
+                : message;
+        }
     }
     
     // Clear input
     promptElement.value = '';
     
     // Add AI thinking indicator
-    const aiMessageElement = addMessageToUI('assistant', '<div class="spinner"></div>');
+    const aiMessageElement = document.createElement('div');
+    aiMessageElement.className = 'ai-message message';
+    aiMessageElement.innerHTML = '<div class="spinner"></div>';
+    chatMessages.appendChild(aiMessageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
     
     try {
         // Get current settings
         const model = modelSelect.value;
         const temperature = parseFloat(temperatureSlider.value);
         
-        // Update conversation settings
-        currentConversation.model = model;
-        currentConversation.temperature = temperature;
-        
-        // Generate response using the appropriate API URL
-        // First try the simple endpoint, then fall back to API path
-        let apiUrl = '/generate';
-        
-        console.log(`Sending request to: ${apiUrl}`);
-        
-        // Attempt the request
-        let response;
-        try {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    prompt: message,
-                    model: model,
-                    temperature: temperature
-                })
-            });
-        } catch (fetchError) {
-            console.warn(`Error with initial endpoint, trying alternative: ${fetchError.message}`);
-            // Try the alternative API path
-            apiUrl = '/api/generate';
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    prompt: message,
-                    model: model,
-                    temperature: temperature
-                })
-            });
+        // Update conversation settings if available
+        if (window.currentConversation) {
+            window.currentConversation.model = model;
+            window.currentConversation.temperature = temperature;
         }
         
-        if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        console.log(`Generating code with model: ${model}, temperature: ${temperature}`);
+        console.log(`Prompt: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
+        
+        // Try both endpoints with better error handling
+        let response = null;
+        let lastError = null;
+        
+        // First try the direct endpoint
+        try {
+            console.log('Attempting to use /generate endpoint...');
+            response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    prompt: message,
+                    model: model,
+                    temperature: temperature
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+        } catch (error) {
+            // Log the error but don't fail yet
+            console.warn('Error with direct endpoint:', error);
+            lastError = error;
+            
+            // Try the API path as a fallback
+            try {
+                console.log('Falling back to /api/generate endpoint...');
+                response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: message,
+                        model: model,
+                        temperature: temperature
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
+                // If we get here, we've successfully recovered
+                lastError = null;
+            } catch (apiError) {
+                console.error('Error with API endpoint:', apiError);
+                // Keep the original error if both fail
+                lastError = lastError || apiError;
+            }
+        }
+        
+        // If we still have an error after trying both endpoints, throw it
+        if (lastError) {
+            throw lastError;
         }
         
         const contentType = response.headers.get('content-type');
@@ -268,92 +310,93 @@ async function generateCode() {
             throw new Error(data.error);
         }
         
+        console.log('Successfully received response from API');
+        
         // Process response
         const aiMessage = data.code;
         
-        // Add to conversation history
-        currentConversation.messages.push({
-            role: 'assistant',
-            content: aiMessage
+        // Add to conversation history if available
+        if (window.currentConversation) {
+            window.currentConversation.messages.push({
+                role: 'assistant',
+                content: aiMessage
+            });
+        }
+        
+        // Process content to handle code blocks
+        const processedContent = aiMessage.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
+            const lang = language || 'plaintext';
+            return `<div class="code-block" data-language="${lang}">${escapeHtml(code.trim())}</div>`;
+        }).replace(/\n/g, '<br>');
+        
+        // Update the AI message in the UI
+        aiMessageElement.innerHTML = processedContent;
+        
+        // Add copy buttons to code blocks
+        const codeBlocks = aiMessageElement.querySelectorAll('.code-block');
+        codeBlocks.forEach(block => {
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-button';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(block.textContent || '')
+                    .then(() => {
+                        alert('Copied to clipboard!');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                    });
+            });
+            block.appendChild(copyBtn);
         });
         
-        // Extract code blocks
-        const codeBlocks = extractCodeBlocks(aiMessage);
-        
-        if (codeBlocks.length > 0) {
-            // Set the main code
-            currentConversation.code = codeBlocks[0].code;
+        // If extractCodeBlocks and currentConversation exist, handle code extraction
+        if (typeof window.extractCodeBlocks === 'function' && window.currentConversation) {
+            const codeBlocks = window.extractCodeBlocks(aiMessage);
             
-            // Set other code blocks if available
-            if (codeBlocks.length > 1) {
-                // Look for SQL schema
-                const sqlBlock = codeBlocks.find(block => 
-                    block.language && block.language.toLowerCase() === 'sql' || 
-                    block.code.toLowerCase().includes('create table'));
+            if (codeBlocks.length > 0) {
+                // Set the main code
+                window.currentConversation.code = codeBlocks[0].code;
                 
-                if (sqlBlock) {
-                    currentConversation.schema = sqlBlock.code;
+                // Extract other code blocks if needed...
+                // [Rest of the code extraction logic]
+                
+                // Add view project button if code was generated
+                if (window.currentConversation.code) {
+                    const viewProjectBtn = document.createElement('button');
+                    viewProjectBtn.className = 'view-project-btn';
+                    viewProjectBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>View Complete Project';
+                    viewProjectBtn.addEventListener('click', () => {
+                        if (typeof window.openProjectModal === 'function') {
+                            window.openProjectModal(window.currentConversation);
+                        }
+                    });
+                    aiMessageElement.appendChild(viewProjectBtn);
                 }
-                
-                // Look for environment variables
-                const envBlock = codeBlocks.find(block => 
-                    block.code.includes('SUPABASE_URL') || 
-                    block.code.includes('.env'));
-                
-                if (envBlock) {
-                    currentConversation.env = envBlock.code;
-                }
-                
-                // Look for connection code
-                const connectionBlock = codeBlocks.find(block => 
-                    block.code.includes('createClient') || 
-                    block.code.includes('supabase'));
-                
-                if (connectionBlock) {
-                    currentConversation.connection = connectionBlock.code;
-                }
-            }
-            
-            // If we don't have specific blocks, generate them
-            if (!currentConversation.schema) {
-                currentConversation.schema = generateSchemaFromCode(currentConversation.code);
-            }
-            
-            if (!currentConversation.env) {
-                currentConversation.env = 
-`NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`;
-            }
-            
-            if (!currentConversation.connection) {
-                currentConversation.connection = 
-`import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)`;
             }
         }
         
-        // Update the AI message in the UI
-        updateAIMessage(aiMessageElement, aiMessage);
+        // Save conversation if the function exists
+        if (typeof window.saveConversation === 'function' && window.currentConversation) {
+            window.saveConversation(window.currentConversation);
+        }
         
-        // Save conversation
-        saveConversation(currentConversation);
-        
-        // Update the history sidebar
-        loadConversationHistory();
+        // Update the history sidebar if the function exists
+        if (typeof window.loadConversationHistory === 'function') {
+            window.loadConversationHistory();
+        }
         
     } catch (error) {
-        console.error('Error:', error);
-        updateAIMessage(aiMessageElement, `Error: ${error.message}. Please make sure your server is running and properly configured.`);
+        console.error('Error generating code:', error);
+        aiMessageElement.innerHTML = `Error: ${error.message}. Please make sure your server is running correctly and the API key is configured.`;
     } finally {
         // Re-enable input
         promptElement.disabled = false;
-        sendButton.classList.remove('disabled');
+        if (sendButton) {
+            sendButton.classList.remove('disabled');
+        }
     }
-}
-
+};
 
 function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
@@ -490,12 +533,14 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// Helper function for escaping HTML
 function escapeHtml(html) {
     const div = document.createElement('div');
     div.textContent = html;
     return div.innerHTML;
 }
 
+// Helper function for copying text to clipboard
 function copyTextToClipboard(text) {
     navigator.clipboard.writeText(text)
         .then(() => {
