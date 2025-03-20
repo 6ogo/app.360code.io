@@ -9,35 +9,35 @@
   "routes": [
     {
       "src": "/styles/(.*)",
-      "dest": "public/styles/$1"
+      "dest": "/public/styles/$1"
     },
     {
       "src": "/js/(.*)",
-      "dest": "public/js/$1"
+      "dest": "/ public/js/$1"
     },
     {
       "src": "/api/(.*)",
-      "dest": "public/api/$1"
+      "dest": "/public/api/$1"
     },
     {
       "src": "/(.*\\.(svg|png|jpg|jpeg|ico|json))",
-      "dest": "public/$1" 
+      "dest": "/public/$1" 
     },
     {
       "src": "/auth",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/auth/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     }
   ]
 }
