@@ -73,23 +73,32 @@ if (supabaseUrl && supabaseKey) {
 
 // Templating function to inject environment variables
 function injectEnvVariables(html) {
-    // Only inject if the variables are actually defined
-    const envVars = {
-        SUPABASE_URL: process.env.SUPABASE_URL || '',
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ''
-    };
-    
-    // Log what we're injecting (without showing full keys)
-    Object.entries(envVars).forEach(([key, value]) => {
-        const displayValue = value ? 
-            value.substring(0, 5) + '...' + (value.length > 10 ? value.substring(value.length - 5) : '') : 
-            'empty';
-        console.log(`Injecting ${key}: ${displayValue}`);
-    });
-    
-    return html
-        .replace('<%= process.env.SUPABASE_URL %>', envVars.SUPABASE_URL)
-        .replace('<%= process.env.SUPABASE_ANON_KEY %>', envVars.SUPABASE_ANON_KEY);
+    try {
+        // Directly inject the environment variables as JavaScript variables
+        const safeSupabaseUrl = process.env.SUPABASE_URL || '';
+        const safeSupabaseKey = process.env.SUPABASE_ANON_KEY || '';
+        
+        // Replace template tags and also add a script block with the variables
+        const injectionScript = `
+        <script>
+            window.SUPABASE_URL = "${safeSupabaseUrl}";
+            window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
+        </script>
+        `;
+        
+        // Add the script right after the <head> tag
+        let processedHtml = html.replace('<head>', '<head>' + injectionScript);
+        
+        // Also replace any existing template tags for backward compatibility
+        processedHtml = processedHtml
+            .replace(/<%=\s*process\.env\.SUPABASE_URL\s*%>/g, safeSupabaseUrl)
+            .replace(/<%=\s*process\.env\.SUPABASE_ANON_KEY\s*%>/g, safeSupabaseKey);
+        
+        return processedHtml;
+    } catch (error) {
+        console.error('Error injecting environment variables:', error);
+        return html; // Return original HTML if there's an error
+    }
 }
 
 // Auth routes
@@ -158,6 +167,8 @@ app.get('/debug', (req, res) => {
 app.post('/generate', async (req, res) => {
     try {
         const { prompt, model, temperature } = req.body;
+        
+        // Validate request
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
@@ -170,6 +181,7 @@ app.post('/generate', async (req, res) => {
         }
         
         console.log(`Generating code with model: ${model || 'mixtral-8x7b-32768'}, temperature: ${temperature || 0.7}`);
+        console.log(`Prompt: ${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}`);
         
         const completion = await groqClient.chat.completions.create({
             model: model || 'mixtral-8x7b-32768',

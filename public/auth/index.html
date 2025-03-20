@@ -11,291 +11,6 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../styles/style.css">
-    <style>
-        body {
-            background-color: hsl(var(--background));
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-
-        .auth-container {
-            width: 100%;
-            max-width: 420px;
-            background-color: hsl(var(--card));
-            border-radius: var(--radius);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
-        }
-
-        .auth-header {
-            padding: 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid hsla(var(--border) / 0.5);
-        }
-
-        .auth-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .logo-img {
-            width: 40px;
-            height: 40px;
-            margin-right: 0.5rem;
-        }
-
-        .auth-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid hsla(var(--border) / 0.5);
-        }
-
-        .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: 0.75rem;
-            cursor: pointer;
-            font-weight: 500;
-            color: hsl(var(--muted-foreground));
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .auth-tab.active {
-            color: hsl(var(--primary));
-            border-bottom-color: hsl(var(--primary));
-        }
-
-        .auth-form-container {
-            padding: 1.5rem;
-        }
-
-        .auth-tab-content {
-            display: none;
-        }
-
-        .auth-tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-            color: hsl(var(--foreground));
-        }
-
-        .auth-input {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            border: 1px solid hsla(var(--border) / 0.5);
-            background-color: hsla(var(--card) / 0.5);
-            color: hsl(var(--foreground));
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .auth-input:focus {
-            outline: none;
-            border-color: hsl(var(--primary));
-            box-shadow: 0 0 0 2px hsla(var(--primary) / 0.2);
-        }
-
-        .auth-submit-btn {
-            width: 100%;
-            background: linear-gradient(90deg, hsl(217, 91%, 60%) 0%, hsl(224, 76%, 48%) 100%);
-            color: white;
-            border: none;
-            border-radius: 0.375rem;
-            padding: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 0.5rem;
-            position: relative;
-        }
-
-        .auth-submit-btn:hover {
-            filter: brightness(1.05);
-        }
-
-        .auth-submit-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .auth-divider {
-            display: flex;
-            align-items: center;
-            margin: 1.5rem 0;
-            color: hsl(var(--muted-foreground));
-            font-size: 0.875rem;
-        }
-
-        .auth-divider::before,
-        .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background-color: hsla(var(--border) / 0.5);
-        }
-
-        .auth-divider::before {
-            margin-right: 1rem;
-        }
-
-        .auth-divider::after {
-            margin-left: 1rem;
-        }
-
-        .social-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .social-button {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem;
-            border-radius: 0.375rem;
-            border: 1px solid hsla(var(--border) / 0.5);
-            background-color: hsla(var(--card) / 0.7);
-            color: hsl(var(--foreground));
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .social-button:hover {
-            background-color: hsla(var(--card) / 0.9);
-        }
-
-        .social-button i {
-            font-size: 1.125rem;
-        }
-
-        .github-button i {
-            color: #fff;
-        }
-
-        .google-button i {
-            color: #EA4335;
-        }
-
-        .auth-footer {
-            padding: 1rem;
-            text-align: center;
-            font-size: 0.75rem;
-            color: hsl(var(--muted-foreground));
-            border-top: 1px solid hsla(var(--border) / 0.5);
-        }
-
-        .auth-link {
-            color: hsl(var(--primary));
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .auth-link:hover {
-            color: hsla(var(--primary) / 0.8);
-            text-decoration: underline;
-        }
-
-        /* Background effects */
-        .dot-pattern {
-            position: fixed;
-            inset: 0;
-            background-image: radial-gradient(hsla(var(--foreground) / 0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .blue-glow {
-            position: fixed;
-            width: 40vw;
-            height: 40vw;
-            background: radial-gradient(circle, hsla(217, 91%, 60%, 0.15) 0%, hsla(217, 91%, 60%, 0) 70%);
-            border-radius: 50%;
-            z-index: -1;
-            filter: blur(40px);
-        }
-
-        .blue-glow.top-right {
-            top: -10vw;
-            right: -10vw;
-        }
-
-        .blue-glow.bottom-left {
-            bottom: -10vw;
-            left: -10vw;
-            animation: pulse 8s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 0.4;
-            }
-
-            100% {
-                opacity: 0.7;
-            }
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 0.75rem 1rem;
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            animation: slide-in 0.3s ease-out;
-        }
-
-        .alert-error {
-            background-color: hsla(0, 84%, 60%, 0.15);
-            border-left: 3px solid hsl(0, 84%, 60%);
-            color: hsl(0, 84%, 60%);
-        }
-
-        .alert-success {
-            background-color: hsla(142, 72%, 29%, 0.15);
-            border-left: 3px solid hsl(142, 72%, 29%);
-            color: hsl(142, 72%, 29%);
-        }
-
-        @keyframes slide-in {
-            from {
-                transform: translateY(-10px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -395,25 +110,21 @@
 
     <!-- Initialize Supabase client -->
     <script>
-        // Initialize Supabase client with environment variables
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        // Initialize Supabase client with environment variables from the window object
+        // The server injects these values before sending the HTML
+        const supabaseUrl = window.SUPABASE_URL;
+        const supabaseKey = window.SUPABASE_ANON_KEY;
         let supabaseClient = null;
 
         try {
-            console.log('Supabase URL:', supabaseUrl);
+            console.log('Supabase URL:', supabaseUrl ? supabaseUrl.substring(0, 5) + '...' : 'Not set');
             console.log('Supabase Key exists:', !!supabaseKey);
-            console.log('Supabase URL is placeholder:', supabaseUrl === "REPLACE_SUPABASE_URL");
-            console.log('Supabase Key is placeholder:', supabaseKey === "REPLACE_SUPABASE_KEY");
 
-            if (supabaseUrl &&
-                supabaseKey &&
-                supabaseUrl !== "REPLACE_SUPABASE_URL" &&
-                supabaseKey !== "REPLACE_SUPABASE_KEY" &&
-                supabaseUrl !== '""' &&
-                supabaseKey !== '""') {
+            if (supabaseUrl && supabaseKey && 
+                supabaseUrl !== '' && 
+                supabaseKey !== '') {
 
-                console.log('Attempting to initialize Supabase with URL:', supabaseUrl);
+                console.log('Attempting to initialize Supabase');
                 try {
                     // Validate URL format
                     new URL(supabaseUrl);
@@ -425,7 +136,7 @@
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log('Supabase initialized successfully');
             } else {
-                console.log('Supabase credentials missing or invalid, using localStorage fallback');
+                console.log('Supabase credentials missing, using localStorage fallback');
             }
         } catch (error) {
             console.error('Failed to initialize Supabase:', error);

@@ -241,136 +241,167 @@ function startNewChat() {
     // Close sidebar on mobile
     sidebar.classList.remove('open');
 }
-function generateCode() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const message = promptElement.value.trim();
-        if (!message) {
-            showToast('Please enter a prompt.', 'error');
-            return;
+
+// Extract the generateCode function to fix
+async function generateCode() {
+    const message = promptElement.value.trim();
+    if (!message) {
+        showToast('Please enter a prompt.', 'error');
+        return;
+    }
+
+    // Disable input during processing
+    promptElement.disabled = true;
+    sendButton.classList.add('disabled');
+    sendButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+
+    // Add user message to UI
+    addMessageToUI('user', message);
+
+    // Add to conversation history
+    currentConversation.messages.push({
+        role: 'user',
+        content: message
+    });
+
+    // Set conversation title based on first message
+    if (currentConversation.messages.length === 1) {
+        currentConversation.title = message.length > 30
+            ? message.substring(0, 30) + '...'
+            : message;
+    }
+
+    // Clear input
+    promptElement.value = '';
+
+    // Add AI thinking indicator
+    const aiMessageElement = addMessageToUI('assistant', '<div class="spinner"></div>');
+
+    try {
+        // Get current settings
+        const model = modelSelect.value;
+        const temperature = parseFloat(temperatureSlider.value);
+
+        // Update conversation settings
+        currentConversation.model = model;
+        currentConversation.temperature = temperature;
+
+        // Generate response using the appropriate API URL
+        // For local development, use relative path. For production, use the full URL.
+        const apiUrl = '/generate';
+
+        console.log(`Attempting to use /generate endpoint...`);
+        console.log(`Model: ${model}, Temperature: ${temperature}`);
+        console.log(`Prompt: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`);
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: message,
+                model: model,
+                temperature: temperature
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
-        // Disable input during processing
-        promptElement.disabled = true;
-        sendButton.classList.add('disabled');
-        sendButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-        // Add user message to UI
-        addMessageToUI('user', message);
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        // Process response
+        const aiMessage = data.code;
+
         // Add to conversation history
         currentConversation.messages.push({
-            role: 'user',
-            content: message
+            role: 'assistant',
+            content: aiMessage
         });
-        // Set conversation title based on first message
-        if (currentConversation.messages.length === 1) {
-            currentConversation.title = message.length > 30
-                ? message.substring(0, 30) + '...'
-                : message;
-        }
-        // Clear input
-        promptElement.value = '';
-        // Add AI thinking indicator
-        const aiMessageElement = addMessageToUI('assistant', '<div class="spinner"></div>');
-        try {
-            // Get current settings
-            const model = modelSelect.value;
-            const temperature = parseFloat(temperatureSlider.value);
-            // Update conversation settings
-            currentConversation.model = model;
-            currentConversation.temperature = temperature;
-            // Generate response using the appropriate API URL
-            // For local development, use relative path. For production, use the full URL.
-            const apiUrl = window.API_BASE_URL ? `${window.API_BASE_URL}/generate` : '/generate';
-            console.log(`Sending request to: ${apiUrl}`);
-            const response = yield fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: message,
-                    model: model,
-                    temperature: temperature
-                })
-            });
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Response is not JSON. Make sure your server is properly set up.');
-            }
-            const data = yield response.json();
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            // Process response
-            const aiMessage = data.code;
-            // Add to conversation history
-            currentConversation.messages.push({
-                role: 'assistant',
-                content: aiMessage
-            });
-            // Extract code blocks
-            const codeBlocks = extractCodeBlocks(aiMessage);
-            if (codeBlocks.length > 0) {
-                // Set the main code
-                currentConversation.code = codeBlocks[0].code;
-                // Set other code blocks if available
-                if (codeBlocks.length > 1) {
-                    // Look for SQL schema
-                    const sqlBlock = codeBlocks.find(block => block.language.toLowerCase() === 'sql' ||
-                        block.code.toLowerCase().includes('create table'));
-                    if (sqlBlock) {
-                        currentConversation.schema = sqlBlock.code;
-                    }
-                    // Look for environment variables
-                    const envBlock = codeBlocks.find(block => block.code.includes('SUPABASE_URL') ||
-                        block.code.includes('.env'));
-                    if (envBlock) {
-                        currentConversation.env = envBlock.code;
-                    }
-                    // Look for connection code
-                    const connectionBlock = codeBlocks.find(block => block.code.includes('createClient') ||
-                        block.code.includes('supabase'));
-                    if (connectionBlock) {
-                        currentConversation.connection = connectionBlock.code;
-                    }
+
+        // Extract code blocks
+        const codeBlocks = extractCodeBlocks(aiMessage);
+
+        if (codeBlocks.length > 0) {
+            // Set the main code
+            currentConversation.code = codeBlocks[0].code;
+
+            // Set other code blocks if available
+            if (codeBlocks.length > 1) {
+                // Look for SQL schema
+                const sqlBlock = codeBlocks.find(block =>
+                    block.language.toLowerCase() === 'sql' ||
+                    block.code.toLowerCase().includes('create table'));
+
+                if (sqlBlock) {
+                    currentConversation.schema = sqlBlock.code;
                 }
-                // If we don't have specific blocks, generate them
-                if (!currentConversation.schema) {
-                    currentConversation.schema = generateSchemaFromCode(currentConversation.code);
+
+                // Look for environment variables
+                const envBlock = codeBlocks.find(block =>
+                    block.code.includes('SUPABASE_URL') ||
+                    block.code.includes('.env'));
+
+                if (envBlock) {
+                    currentConversation.env = envBlock.code;
                 }
-                if (!currentConversation.env) {
-                    currentConversation.env =
-                        `NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+
+                // Look for connection code
+                const connectionBlock = codeBlocks.find(block =>
+                    block.code.includes('createClient') ||
+                    block.code.includes('supabase'));
+
+                if (connectionBlock) {
+                    currentConversation.connection = connectionBlock.code;
+                }
+            }
+
+            // If we don't have specific blocks, generate them
+            if (!currentConversation.schema) {
+                currentConversation.schema = generateSchemaFromCode(currentConversation.code);
+            }
+
+            if (!currentConversation.env) {
+                currentConversation.env =
+                    `NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`;
-                }
-                if (!currentConversation.connection) {
-                    currentConversation.connection =
-                        `import { createClient } from '@supabase/supabase-js'
+            }
+
+            if (!currentConversation.connection) {
+                currentConversation.connection =
+                    `import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseKey)`;
-                }
             }
-            // Update the AI message in the UI
-            updateAIMessage(aiMessageElement, aiMessage);
-            // Save conversation
-            saveConversation(currentConversation);
-            // Update the history sidebar
-            loadConversationHistory();
         }
-        catch (error) {
-            console.error('Error:', error);
-            updateAIMessage(aiMessageElement, `Error: ${error.message}. Please make sure your server is running and properly configured.`);
-            showToast(`Error: ${error.message}`, 'error');
-        }
-        finally {
-            // Re-enable input
-            promptElement.disabled = false;
-            sendButton.classList.remove('disabled');
-            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
-        }
-    });
+
+        // Update the AI message in the UI
+        updateAIMessage(aiMessageElement, aiMessage);
+
+        // Save conversation
+        saveConversation(currentConversation);
+
+        // Update the history sidebar
+        loadConversationHistory();
+
+    } catch (error) {
+        console.error('Error with /generate endpoint:', error);
+        updateAIMessage(aiMessageElement, `Error: ${error.message}. Please make sure your server is running and properly configured.`);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        // Re-enable input
+        promptElement.disabled = false;
+        sendButton.classList.remove('disabled');
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    }
 }
+
 function addMessageToUI(role, content) {
     const messageElement = document.createElement('div');
     messageElement.className = role === 'user' ? 'user-message message' : 'ai-message message';
@@ -522,12 +553,12 @@ function escapeHtml(html) {
 function copyTextToClipboard(text) {
     navigator.clipboard.writeText(text)
         .then(() => {
-        showToast('Copied to clipboard!', 'success');
-    })
+            showToast('Copied to clipboard!', 'success');
+        })
         .catch(err => {
-        console.error('Failed to copy: ', err);
-        showToast('Failed to copy text', 'error');
-    });
+            console.error('Failed to copy: ', err);
+            showToast('Failed to copy text', 'error');
+        });
 }
 // Storage Functions
 function saveConversation(conversation) {
@@ -548,21 +579,21 @@ function saveConversation(conversation) {
                     const { data: upsertData, error } = yield supabase
                         .from('conversations')
                         .upsert([
-                        {
-                            id: conversation.id,
-                            user_id: userId,
-                            title: conversation.title,
-                            messages: conversation.messages,
-                            code: conversation.code,
-                            schema: conversation.schema,
-                            env: conversation.env,
-                            connection: conversation.connection,
-                            model: conversation.model,
-                            temperature: conversation.temperature,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        }
-                    ])
+                            {
+                                id: conversation.id,
+                                user_id: userId,
+                                title: conversation.title,
+                                messages: conversation.messages,
+                                code: conversation.code,
+                                schema: conversation.schema,
+                                env: conversation.env,
+                                connection: conversation.connection,
+                                model: conversation.model,
+                                temperature: conversation.temperature,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            }
+                        ])
                         .select();
                     if (error)
                         throw error;

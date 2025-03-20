@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userMenuContainer = document.getElementById('userMenuContainer');
     
     // Auth page specific elements
-    const authForm = document.getElementById('authForm');
     const authTabs = document.querySelectorAll('[data-auth-tab]');
     const signinTab = document.getElementById('signinTab');
     const signupTab = document.getElementById('signupTab');
@@ -85,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (googleSignUp) {
-            googleSignUp.addEventListener('click', () => signInWithProvider('google'));
+            googleSignUp.addEventListener('click', () => signInWithProvider('github'));
         }
     }
     
@@ -132,20 +131,23 @@ function initializeSupabase() {
     }
     
     try {
-        // Get credentials from the window object or inline vars
-        const supabaseUrl = window.SUPABASE_URL || "REPLACE_SUPABASE_URL";
-        const supabaseKey = window.SUPABASE_ANON_KEY || "REPLACE_SUPABASE_KEY";
+        // Get credentials from the window object - these are injected by the server
+        const supabaseUrl = window.SUPABASE_URL;
+        const supabaseKey = window.SUPABASE_ANON_KEY;
         
         // Only initialize if we have real values
-        if (supabaseUrl && supabaseUrl !== "REPLACE_SUPABASE_URL" && 
-            supabaseKey && supabaseKey !== "REPLACE_SUPABASE_KEY") {
-            console.log('Initializing Supabase client');
+        if (supabaseUrl && supabaseKey && 
+            supabaseUrl !== '' && supabaseKey !== '') {
+            console.log('Initializing Supabase client with window variables');
             window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase client initialized successfully');
         } else {
             console.error('Missing Supabase credentials for initialization');
+            showAlert('Authentication service unavailable. Please try again later or contact support.', 'error');
         }
     } catch (error) {
         console.error('Error initializing Supabase client:', error);
+        showAlert('Failed to initialize authentication. Please refresh the page or try again later.', 'error');
     }
 }
 
@@ -214,10 +216,8 @@ function redirectIfNeeded(isAuthenticated) {
     if (isAuthenticated && isAuthPage) {
         // User is authenticated and on auth page, redirect to app
         window.location.href = '/';
-    } else if (!isAuthenticated && !isAuthPage) {
-        // User is not authenticated and not on auth page, redirect to auth
-        window.location.href = '/auth';
     }
+    // The redirect for unauthenticated users is handled by the index.html auth check
 }
 
 // Sign in with email and password
@@ -225,7 +225,7 @@ async function signInWithEmail(email, password) {
     try {
         const supabaseClient = window.supabaseClient;
         if (!supabaseClient) {
-            showAlert('Supabase client not initialized');
+            showAlert('Authentication service unavailable. Please try again later.', 'error');
             return;
         }
         
@@ -254,7 +254,7 @@ async function signInWithEmail(email, password) {
         }, 1000);
     } catch (error) {
         console.error('Error signing in:', error);
-        showAlert(error.message || 'Failed to sign in');
+        showAlert(error.message || 'Failed to sign in', 'error');
     } finally {
         const signinButton = document.querySelector('#signinForm button[type="submit"]');
         if (signinButton) {
@@ -269,7 +269,7 @@ async function signUpWithEmail(email, password) {
     try {
         const supabaseClient = window.supabaseClient;
         if (!supabaseClient) {
-            showAlert('Supabase client not initialized');
+            showAlert('Authentication service unavailable. Please try again later.', 'error');
             return;
         }
         
@@ -303,7 +303,7 @@ async function signUpWithEmail(email, password) {
         }
     } catch (error) {
         console.error('Error signing up:', error);
-        showAlert(error.message || 'Failed to create account');
+        showAlert(error.message || 'Failed to create account', 'error');
     } finally {
         const signupButton = document.querySelector('#signupForm button[type="submit"]');
         if (signupButton) {
@@ -318,7 +318,7 @@ async function signInWithProvider(provider) {
     try {
         const supabaseClient = window.supabaseClient;
         if (!supabaseClient) {
-            showAlert('Supabase client not initialized');
+            showAlert('Authentication service unavailable. Please try again later.', 'error');
             return;
         }
         
@@ -341,7 +341,7 @@ async function signInWithProvider(provider) {
         // The page will be redirected by Supabase OAuth flow
     } catch (error) {
         console.error(`Error signing in with ${provider}:`, error);
-        showAlert(error.message || `Failed to sign in with ${provider}`);
+        showAlert(error.message || `Failed to sign in with ${provider}`, 'error');
         
         // Re-enable social login buttons
         document.querySelectorAll('.social-button').forEach(btn => {
@@ -357,7 +357,7 @@ async function signOut() {
     try {
         const supabaseClient = window.supabaseClient;
         if (!supabaseClient) {
-            showAlert('Supabase client not initialized');
+            showAlert('Authentication service unavailable. Please try again later.', 'error');
             return;
         }
         
@@ -376,7 +376,7 @@ async function signOut() {
         }, 500);
     } catch (error) {
         console.error('Error signing out:', error);
-        showAlert(error.message || 'Failed to sign out');
+        showAlert(error.message || 'Failed to sign out', 'error');
     }
 }
 
@@ -432,82 +432,51 @@ function closeMenuOnClickOutside(e) {
 
 // Show alert
 function showAlert(message, type = 'error') {
-    // Check if the alert container exists, create it if not
-    let alertContainer = document.getElementById('alertContainer');
-    if (!alertContainer) {
-        alertContainer = document.createElement('div');
-        alertContainer.id = 'alertContainer';
-        alertContainer.style.position = 'fixed';
-        alertContainer.style.top = '20px';
-        alertContainer.style.right = '20px';
-        alertContainer.style.zIndex = '9999';
-        document.body.appendChild(alertContainer);
-    }
+    // Determine which container to use based on the current page
+    const isAuthPage = window.location.pathname.includes('/auth');
     
-    // Create alert element
-    const alert = document.createElement('div');
-    alert.className = `alert ${type}`;
-    alert.style.backgroundColor = type === 'error' ? '#f8d7da' : 
-                                 type === 'success' ? '#d4edda' : 
-                                 type === 'info' ? '#d1ecf1' : '#fff3cd';
-    alert.style.color = type === 'error' ? '#721c24' : 
-                       type === 'success' ? '#155724' : 
-                       type === 'info' ? '#0c5460' : '#856404';
-    alert.style.padding = '12px 18px';
-    alert.style.marginBottom = '10px';
-    alert.style.borderRadius = '4px';
-    alert.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-    alert.style.position = 'relative';
-    alert.style.animation = 'fadeIn 0.3s ease';
-    alert.innerHTML = `
-        <span style="margin-right: 8px;">
-            <i class="fas ${type === 'error' ? 'fa-circle-exclamation' : 
-                         type === 'success' ? 'fa-circle-check' : 
-                         type === 'info' ? 'fa-circle-info' : 'fa-triangle-exclamation'}"></i>
-        </span>
-        ${message}
-        <button style="position: absolute; right: 10px; top: 10px; background: none; border: none; cursor: pointer; color: inherit;">
-            <i class="fas fa-xmark"></i>
-        </button>
-    `;
-    
-    // Add styles for animation
-    const style = document.createElement('style');
-    if (!document.querySelector('#alert-animations')) {
-        style.id = 'alert-animations';
-        style.innerHTML = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateY(0); }
-                to { opacity: 0; transform: translateY(-10px); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // Add close functionality
-    alert.querySelector('button').addEventListener('click', () => {
-        alert.style.animation = 'fadeOut 0.3s ease forwards';
-        setTimeout(() => {
-            alertContainer.removeChild(alert);
-        }, 280);
-    });
-    
-    // Auto-remove after delay
-    setTimeout(() => {
-        if (alertContainer.contains(alert)) {
-            alert.style.animation = 'fadeOut 0.3s ease forwards';
+    if (isAuthPage) {
+        // On auth page, show alert in the appropriate container
+        const alertContainer = type === 'error' ? 
+            document.getElementById('signinAlerts') || document.getElementById('signupAlerts') : 
+            document.getElementById('signinAlerts') || document.getElementById('signupAlerts');
+        
+        if (alertContainer) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = message;
+            
+            alertContainer.innerHTML = ''; // Clear previous alerts
+            alertContainer.appendChild(alert);
+            
+            // Auto-remove after delay
             setTimeout(() => {
                 if (alertContainer.contains(alert)) {
                     alertContainer.removeChild(alert);
                 }
-            }, 280);
+            }, 5000);
         }
-    }, 5000);
-    
-    // Add to container
-    alertContainer.appendChild(alert);
+    } else {
+        // On main app, use the toast system
+        const toastContainer = document.getElementById('toastContainer');
+        if (toastContainer) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto-remove after delay
+            setTimeout(() => {
+                if (toastContainer.contains(toast)) {
+                    toastContainer.removeChild(toast);
+                }
+            }, 5000);
+        }
+    }
 }

@@ -283,21 +283,24 @@
     <!-- Add Supabase library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 
-    <!-- Initialize Supabase client with environment variables -->
+    <!-- Initialize Supabase client with environment variables from window object -->
     <script>
-        // Initialize Supabase client with environment variables from server
-        const supabaseUrl = '<%= process.env.SUPABASE_URL %>';
-        const supabaseKey = '<%= process.env.SUPABASE_ANON_KEY %>';
+        // Initialize Supabase client with environment variables from the window object
+        // The server injects these values before sending the HTML
+        const supabaseUrl = window.SUPABASE_URL;
+        const supabaseKey = window.SUPABASE_ANON_KEY;
         let supabaseClient = null;
 
         try {
-            if (supabaseUrl && supabaseKey &&
-                supabaseUrl !== '' &&
-                supabaseKey !== '' &&
-                !supabaseUrl.includes('process.env') &&
-                !supabaseKey.includes('process.env')) {
-
-                console.log('Initializing Supabase with valid credentials');
+            console.log('Checking Supabase credentials:');
+            console.log('SUPABASE_URL exists:', !!supabaseUrl);
+            console.log('SUPABASE_KEY exists:', !!supabaseKey);
+            
+            if (supabaseUrl && supabaseKey && 
+                supabaseUrl !== '' && 
+                supabaseKey !== '') {
+                
+                console.log('Initializing Supabase with credentials');
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log('Supabase initialized successfully');
             } else {
@@ -339,6 +342,7 @@
             const loadingModal = document.getElementById('loadingModal');
             const authCheckModal = document.getElementById('authCheckModal');
             const redirectToLoginBtn = document.getElementById('redirectToLoginBtn');
+            const appContainer = document.querySelector('.app-container');
 
             if (redirectToLoginBtn) {
                 redirectToLoginBtn.addEventListener('click', () => {
@@ -351,17 +355,35 @@
                 try {
                     if (!window.supabaseClient) {
                         console.error('Supabase client not available');
+                        // Hide loading modal
                         if (loadingModal) loadingModal.classList.remove('visible');
+                        // Show auth check modal
                         if (authCheckModal) authCheckModal.classList.add('visible');
+                        // Hide the main content to prevent interaction
+                        if (appContainer) {
+                            // Hide everything except the auth modal
+                            const elementsToHide = document.querySelectorAll('.app-container > *:not(#authCheckModal)');
+                            elementsToHide.forEach(el => {
+                                if (el.id !== 'authCheckModal' && el.id !== 'loadingModal') {
+                                    el.style.display = 'none';
+                                }
+                            });
+                        }
+                        // Directly redirect after a short delay
+                        setTimeout(() => {
+                            window.location.href = '/auth';
+                        }, 1000);
                         return;
                     }
 
                     const { data, error } = await window.supabaseClient.auth.getUser();
 
                     if (error || !data?.user) {
-                        console.log('User not authenticated, showing auth modal');
+                        console.log('User not authenticated, redirecting to auth page');
+                        // Hide loading modal
                         if (loadingModal) loadingModal.classList.remove('visible');
-                        if (authCheckModal) authCheckModal.classList.add('visible');
+                        // Redirect to auth page immediately
+                        window.location.href = '/auth';
                     } else {
                         console.log('User authenticated:', data.user.email);
                         // Update user info
@@ -377,8 +399,10 @@
                     }
                 } catch (err) {
                     console.error('Auth check error:', err);
+                    // Hide loading modal
                     if (loadingModal) loadingModal.classList.remove('visible');
-                    if (authCheckModal) authCheckModal.classList.add('visible');
+                    // Redirect to auth page on error
+                    window.location.href = '/auth';
                 }
             }
 
