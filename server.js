@@ -54,8 +54,22 @@ if (supabaseUrl && supabaseKey) {
 // Function to inject Supabase credentials into HTML
 function injectCredentialsIntoHTML(htmlContent) {
     let modifiedHtml = htmlContent;
-    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${supabaseUrl || ''}'`);
-    modifiedHtml = modifiedHtml.replace(/'__SUPABASE_ANON_KEY__'/g, `'${supabaseKey || ''}'`); // Fixed placeholder name
+    
+    // Only inject if we have actual values (not undefined or empty)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.trim() !== '') {
+        console.log(`Injecting SUPABASE_URL: ${process.env.SUPABASE_URL.substring(0, 10)}...`);
+        modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${process.env.SUPABASE_URL}'`);
+    } else {
+        console.warn('SUPABASE_URL is not available for injection');
+    }
+    
+    if (process.env.SUPABASE_ANON_KEY && process.env.SUPABASE_ANON_KEY.trim() !== '') {
+        console.log(`Injecting SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY.substring(0, 5)}...`);
+        modifiedHtml = modifiedHtml.replace(/'__SUPABASE_ANON_KEY__'/g, `'${process.env.SUPABASE_ANON_KEY}'`);
+    } else {
+        console.warn('SUPABASE_ANON_KEY is not available for injection');
+    }
+    
     return modifiedHtml;
 }
     
@@ -79,10 +93,10 @@ app.get('*', (req, res, next) => {
         let htmlContent = fs.readFileSync(indexPath, 'utf8');
         
         // Inject Supabase credentials
-        htmlContent = injectCredentialsIntoHTML(htmlContent);
+        const injectedHtml = injectCredentialsIntoHTML(htmlContent);
         
-        console.log(`Serving HTML with Supabase credentials for path: ${req.path}`);
-        res.send(htmlContent);
+        console.log(`Serving HTML with${injectedHtml === htmlContent ? 'out' : ''} Supabase credentials for path: ${req.path}`);
+        res.send(injectedHtml);
     } catch (error) {
         console.error('Error serving index.html:', error);
         res.status(500).send('Error loading application');
