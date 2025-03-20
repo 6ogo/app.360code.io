@@ -45,17 +45,17 @@ window.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
-if (sidebarToggle) {
+if (sidebarToggle && sidebar) {
     sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
-        updateToggleIcon();
+        console.log(sidebar.classList.contains('open') ? 'Opening sidebar' : 'Closing sidebar');
     });
 }
 
-if (closeSidebar) {
+if (closeSidebar && sidebar) {
     closeSidebar.addEventListener('click', () => {
         sidebar.classList.remove('open');
-        updateToggleIcon();
+        console.log('Closing sidebar');
     });
 }
 
@@ -224,222 +224,24 @@ function updateToggleIcon() {
     }
 }
 
-window.generateCode = async function () {
-    const promptElement = document.getElementById('prompt');
-    const message = promptElement.value.trim();
-
-    if (!message) {
-        alert('Please enter a prompt.');
-        return;
-    }
-
-    // Get UI elements
-    const sendButton = document.getElementById('sendButton');
-    const chatMessages = document.getElementById('chatMessages');
-    const modelSelect = document.getElementById('modelSelect');
-    const temperatureSlider = document.getElementById('temperatureSlider');
-
-    // Disable input during processing
-    promptElement.disabled = true;
-    sendButton.classList.add('disabled');
-
-    // Add user message to UI
-    const userMessageElement = document.createElement('div');
-    userMessageElement.className = 'user-message message';
-    userMessageElement.innerHTML = message.replace(/\n/g, '<br>');
-    chatMessages.appendChild(userMessageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Add to conversation history
-    if (window.currentConversation) {
-        window.currentConversation.messages.push({
-            role: 'user',
-            content: message
-        });
-
-        // Set conversation title based on first message
-        if (window.currentConversation.messages.length === 1) {
-            window.currentConversation.title = message.length > 30
-                ? message.substring(0, 30) + '...'
-                : message;
-        }
-    }
-
-    // Clear input
-    promptElement.value = '';
-
-    // Add AI thinking indicator
-    const aiMessageElement = document.createElement('div');
-    aiMessageElement.className = 'ai-message message';
-    aiMessageElement.innerHTML = '<div class="spinner"></div>';
-    chatMessages.appendChild(aiMessageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
+async function generateCode(prompt, model, temperature) {
+    console.log('Attempting to use /generate endpoint...');
     try {
-        // Get current settings
-        const model = modelSelect.value;
-        const temperature = parseFloat(temperatureSlider.value);
-
-        // Update conversation settings if available
-        if (window.currentConversation) {
-            window.currentConversation.model = model;
-            window.currentConversation.temperature = temperature;
-        }
-
-        console.log(`Generating code with model: ${model}, temperature: ${temperature}`);
-        console.log(`Prompt: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
-
-        // Try both endpoints with better error handling
-        let response = null;
-        let lastError = null;
-
-        // First try the direct endpoint
-        try {
-            console.log('Attempting to use /generate endpoint...');
-            response = await fetch('/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: message,
-                    model: model,
-                    temperature: temperature
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-            }
-        } catch (error) {
-            // Log the error but don't fail yet
-            console.warn('Error with direct endpoint:', error);
-            lastError = error;
-
-            // Try the API path as a fallback
-            try {
-                console.log('Falling back to /api/generate endpoint...');
-                response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: message,
-                        model: model,
-                        temperature: temperature
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-                }
-
-                // If we get here, we've successfully recovered
-                lastError = null;
-            } catch (apiError) {
-                console.error('Error with API endpoint:', apiError);
-                // Keep the original error if both fail
-                lastError = lastError || apiError;
-            }
-        }
-
-        // If we still have an error after trying both endpoints, throw it
-        if (lastError) {
-            throw lastError;
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON. Make sure your server is properly set up.');
-        }
-
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        console.log('Successfully received response from API');
-
-        // Process response
-        const aiMessage = data.code;
-
-        // Add to conversation history if available
-        if (window.currentConversation) {
-            window.currentConversation.messages.push({
-                role: 'assistant',
-                content: aiMessage
-            });
-        }
-
-        // Process content to handle code blocks
-        const processedContent = aiMessage.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-            const lang = language || 'plaintext';
-            return `<div class="code-block" data-language="${lang}">${escapeHtml(code.trim())}</div>`;
-        }).replace(/\n/g, '<br>');
-
-        // Update the AI message in the UI
-        aiMessageElement.innerHTML = processedContent;
-
-        // Add copy buttons to code blocks
-        const codeBlocks = aiMessageElement.querySelectorAll('.code-block');
-        codeBlocks.forEach(block => {
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'copy-button';
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(block.textContent || '')
-                    .then(() => {
-                        alert('Copied to clipboard!');
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy: ', err);
-                    });
-            });
-            block.appendChild(copyBtn);
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, model, temperature })
         });
-
-        // If extractCodeBlocks and currentConversation exist, handle code extraction
-        if (typeof window.extractCodeBlocks === 'function' && window.currentConversation) {
-            const codeBlocks = window.extractCodeBlocks(aiMessage);
-
-            if (codeBlocks.length > 0) {
-                // Set the main code
-                window.currentConversation.code = codeBlocks[0].code;
-
-                // Add view project button if code was generated
-                if (window.currentConversation.code) {
-                    const viewProjectBtn = document.createElement('button');
-                    viewProjectBtn.className = 'view-project-btn';
-                    viewProjectBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>View Complete Project';
-                    viewProjectBtn.addEventListener('click', () => {
-                        if (typeof window.openProjectModal === 'function') {
-                            window.openProjectModal(window.currentConversation);
-                        }
-                    });
-                    aiMessageElement.appendChild(viewProjectBtn);
-                }
-            }
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
-
-        // Save conversation if the function exists
-        if (typeof window.saveConversation === 'function' && window.currentConversation) {
-            window.saveConversation(window.currentConversation);
-        }
-
-        // Update the history sidebar if the function exists
-        if (typeof window.loadConversationHistory === 'function') {
-            window.loadConversationHistory();
-        }
-
+        const data = await response.json();
+        return data.generatedCode;
     } catch (error) {
-        console.error('Error generating code:', error);
-        aiMessageElement.innerHTML = `Error: ${error.message}. Please make sure your server is running correctly and the API key is configured.`;
-    } finally {
-        // Re-enable input
-        promptElement.disabled = false;
-        if (sendButton) {
-            sendButton.classList.remove('disabled');
-        }
+        console.error('Error with /generate endpoint:', error);
+        throw error;
     }
-};
+}
 
 if (sendButton) {
     sendButton.addEventListener('click', generateCode);

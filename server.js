@@ -30,7 +30,7 @@ if (supabaseUrl && supabaseKey) {
     try {
         supabase = createClient(supabaseUrl, supabaseKey);
         console.log('Supabase initialized successfully');
-        
+
         // Schedule the cleanup job (runs once per day at midnight)
         if (supabase) {
             setInterval(async () => {
@@ -54,82 +54,74 @@ if (supabaseUrl && supabaseKey) {
 // Function to inject Supabase credentials into HTML
 function injectCredentialsIntoHTML(htmlContent) {
     let modifiedHtml = htmlContent;
-    
+
     if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.trim() !== '') {
         console.log(`Injecting SUPABASE_URL: ${process.env.SUPABASE_URL.substring(0, 10)}...`);
         modifiedHtml = modifiedHtml.replace(/'__SUPABASE_URL__'/g, `'${process.env.SUPABASE_URL}'`);
     } else {
         console.warn('SUPABASE_URL is not available for injection');
     }
-    
+
     if (process.env.SUPABASE_ANON_KEY && process.env.SUPABASE_ANON_KEY.trim() !== '') {
         console.log(`Injecting SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY.substring(0, 5)}...`);
         modifiedHtml = modifiedHtml.replace(/'__SUPABASE_ANON_KEY__'/g, `'${process.env.SUPABASE_ANON_KEY}'`);
     } else {
         console.warn('SUPABASE_ANON_KEY is not available for injection');
     }
-    
+
     return modifiedHtml;
 }
 
-// Serve static files EXCEPT for index.html (we'll handle that separately)
-app.use(express.static(path.join(__dirname, 'public'), {
-    index: false  // Don't auto-serve index.html
-}));
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve index.html with injected credentials for ALL routes (SPA support)
-app.get('*', (req, res, next) => {
-    // Skip API routes
-    if (req.path.startsWith('/generate') || 
-        req.path.startsWith('/save-project') || 
-        req.path.startsWith('/projects/') ||
-        req.path.startsWith('/admin/')) {
-        return next();
+app.get('*', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'index.html');
+    let html = fs.readFileSync(filePath, 'utf8');
+    if (process.env.SUPABASE_URL) {
+        console.log(`Injecting SUPABASE_URL: ${process.env.SUPABASE_URL.substring(0, 10)}...`);
+        html = html.replace(/'__SUPABASE_URL__'/g, `'${process.env.SUPABASE_URL}'`);
+    } else {
+        console.warn('SUPABASE_URL not set');
     }
-    
-    try {
-        const indexPath = path.join(__dirname, 'public', 'index.html');
-        let htmlContent = fs.readFileSync(indexPath, 'utf8');
-        
-        // Inject Supabase credentials
-        const injectedHtml = injectCredentialsIntoHTML(htmlContent);
-        
-        console.log(`Serving HTML with${injectedHtml === htmlContent ? 'out' : ''} Supabase credentials for path: ${req.path}`);
-        res.send(injectedHtml);
-    } catch (error) {
-        console.error('Error serving index.html:', error);
-        res.status(500).send('Error loading application');
+    if (process.env.SUPABASE_ANON_KEY) {
+        html = html.replace(/'__SUPABASE_ANON_KEY__'/g, `'${process.env.SUPABASE_ANON_KEY}'`);
+    } else {
+        console.warn('SUPABASE_ANON_KEY not set');
     }
+    console.log('Injected HTML snippet:', html.substring(0, 200));
+    res.send(html);
 });
 
 // Generate code endpoint
 app.post('/generate', async (req, res) => {
     const { prompt, model = 'qwen-2.5-coder-32b', temperature = 0.7 } = req.body;
-    
+
     if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
     }
-    
+
     try {
         console.log(`Generating code with model: ${model}, temperature: ${temperature}`);
-        
+
         const completion = await groq.chat.completions.create({
             model: model,
             messages: [
-                { 
-                    role: 'system', 
-                    content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' 
+                {
+                    role: 'system',
+                    content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.'
                 },
                 { role: 'user', content: prompt }
             ],
             temperature: parseFloat(temperature),
             max_tokens: 4000,
         });
-        
+
         const generatedCode = completion.choices[0].message.content;
         console.log('Code generated successfully');
-        
-        res.json({ code: generatedCode });
+
+        res.json({ generatedCode });
     } catch (error) {
         console.error('Error generating code:', error);
         res.status(500).json({ error: error.message || 'Failed to generate code' });
@@ -139,23 +131,23 @@ app.post('/generate', async (req, res) => {
 // Save project to Supabase
 app.post('/save-project', async (req, res) => {
     const { title, prompt, code, schema, connection, env, userId } = req.body;
-    
+
     if (!title || !code) {
         return res.status(400).json({ error: 'Title and code are required' });
     }
-    
+
     // Check if Supabase is available
     if (!supabase) {
         return res.status(503).json({ error: 'Database connection not available' });
     }
-    
+
     try {
         const { data, error } = await supabase
             .from('projects')
             .insert([
-                { 
-                    title, 
-                    prompt, 
+                {
+                    title,
+                    prompt,
                     code,
                     schema,
                     connection,
@@ -164,9 +156,9 @@ app.post('/save-project', async (req, res) => {
                     created_at: new Date().toISOString()
                 }
             ]);
-            
+
         if (error) throw error;
-        
+
         res.json({ success: true, data });
     } catch (error) {
         console.error('Error saving project:', error);
@@ -175,28 +167,8 @@ app.post('/save-project', async (req, res) => {
 });
 
 // Get user's saved projects
-app.get('/projects/:userId', async (req, res) => {
-    const { userId } = req.params;
-    
-    // Check if Supabase is available
-    if (!supabase) {
-        return res.status(503).json({ error: 'Database connection not available' });
-    }
-    
-    try {
-        const { data, error } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-            
-        if (error) throw error;
-        
-        res.json({ projects: data });
-    } catch (error) {
-        console.error('Error fetching projects:', error);
-        res.status(500).json({ error: 'Failed to fetch projects' });
-    }
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Run database cleanup directly
@@ -205,7 +177,7 @@ app.post('/admin/cleanup-conversations', async (req, res) => {
     if (!supabase) {
         return res.status(503).json({ error: 'Database connection not available' });
     }
-    
+
     try {
         const { error } = await supabase.rpc('delete_old_conversations');
         if (error) {
@@ -229,3 +201,5 @@ app.listen(PORT, () => {
         console.log(`- GET /projects/:userId: Get a user's saved projects`);
     }
 });
+
+module.exports = app;

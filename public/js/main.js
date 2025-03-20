@@ -1,49 +1,6 @@
 // Initialize app and fix critical UI elements
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const closeSidebar = document.getElementById('closeSidebar');
-    
-    // Make sure sidebar toggle button is visible and styled properly
-    if (sidebarToggle) {
-        // Ensure the button is visible and styled correctly
-        sidebarToggle.style.display = 'flex';
-        sidebarToggle.style.alignItems = 'center';
-        sidebarToggle.style.justifyContent = 'center';
-        sidebarToggle.style.cursor = 'pointer';
-        
-        // Add event listener
-        sidebarToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Opening sidebar');
-            sidebar.classList.add('open');
-        });
-    }
-    
-    // Fix for sidebar close button
-    if (closeSidebar && sidebar) {
-        // Make sure the close button is visible
-        closeSidebar.style.display = 'flex';
-        
-        // Adjust the CSS for better visibility
-        closeSidebar.style.position = 'absolute';
-        closeSidebar.style.top = '1rem';
-        closeSidebar.style.right = '1rem';
-        closeSidebar.style.zIndex = '100';
-        
-        // Clear existing event listeners and add a new one
-        closeSidebar.replaceWith(closeSidebar.cloneNode(true));
-        
-        // Get the fresh reference and add event listener
-        const newCloseSidebar = document.getElementById('closeSidebar');
-        newCloseSidebar.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Closing sidebar');
-            sidebar.classList.remove('open');
-        });
-    }
-    
+document.addEventListener('DOMContentLoaded', function() {    
+
     // Add CSS for improved sidebar toggle behavior
     const style = document.createElement('style');
     style.textContent = `

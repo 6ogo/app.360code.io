@@ -42,15 +42,24 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-    width: 280px;
-    border-right: 1px solid hsla(var(--border) / 0.5);
-    background-color: hsla(var(--background) / 0.95);
-    height: 100vh;
     position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100%;
+    transform: translateX(-100%);
     transition: transform 0.3s ease;
-    z-index: 50;
 }
 
+.sidebar.open {
+    transform: translateX(0);
+}
+
+@media (min-width: 769px) {
+    .sidebar {
+        transform: translateX(0); /* Always visible on desktop */
+    }
+}
 .sidebar-header {
     padding: 1.25rem;
     border-bottom: 1px solid hsla(var(--border) / 0.5);
