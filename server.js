@@ -1,3 +1,6 @@
+// THIS FILE REPLACES YOUR CURRENT server.js
+// This version is specifically optimized for Vercel deployment
+
 const express = require('express');
 const GroqSDK = require('groq-sdk');
 const dotenv = require('dotenv');
@@ -8,9 +11,19 @@ const { createClient } = require('@supabase/supabase-js');
 // Load environment variables
 dotenv.config();
 
+// Debug environment variables
+console.log('===================================== ENVIRONMENT VARIABLES DEBUG =====================================');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ SET' : '❌ NOT SET');
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ NOT SET'); 
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? '✅ SET' : '❌ NOT SET');
+console.log('=====================================================================================================');
+
 // Initialize Express
 const app = express();
 app.use(express.json());
+
+// Set up static file serving - IMPORTANT for Vercel
+// Define explicit paths for each static file type
 app.use('/styles', express.static(path.join(__dirname, 'public', 'styles')));
 app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 app.use('/api', express.static(path.join(__dirname, 'public', 'api')));
@@ -22,20 +35,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
       res.setHeader('Content-Type', 'application/javascript');
     } else if (filePath.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml');
-    } else if (filePath.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html');
     }
   }
 }));
-  
-// Debug: Print environment variables
-console.log('=====================================');
-console.log('ENVIRONMENT VARIABLES DEBUG');
-console.log('=====================================');
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ SET' : '❌ NOT SET');
-console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ NOT SET');
-console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? '✅ SET' : '❌ NOT SET');
-console.log('=====================================');
 
 // Validate environment variables
 const validateEnvVars = () => {
@@ -45,7 +47,8 @@ const validateEnvVars = () => {
   if (missing.length > 0) {
     console.error(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
     console.error('Please add these to your .env file or environment configuration');
-    // We'll continue execution but log the warning
+  } else {
+    console.log('✅ All required environment variables are present');
   }
 };
 
@@ -63,63 +66,96 @@ if (supabaseUrl && supabaseKey) {
     try {
         supabase = createClient(supabaseUrl, supabaseKey);
         console.log('Supabase initialized successfully');
-
-        // Schedule daily cleanup
-        setInterval(async () => {
-            try {
-                const { error } = await supabase.rpc('delete_old_conversations');
-                if (error) throw error;
-                console.log('Cleaned up conversations older than 3 days');
-            } catch (err) {
-                console.error('Failed to run cleanup:', err);
-            }
-        }, 24 * 60 * 60 * 1000); // Every 24 hours
     } catch (error) {
         console.error('Failed to initialize Supabase:', error);
     }
 }
 
-// Templating function to inject environment variables
+// Improved templating function to inject environment variables
 function injectEnvVariables(html) {
     try {
-        // Ensure we have valid values to inject
         const safeSupabaseUrl = process.env.SUPABASE_URL || '';
         const safeSupabaseKey = process.env.SUPABASE_ANON_KEY || '';
         
-        console.log(`Injecting environment variables into HTML:`);
-        console.log(`- SUPABASE_URL: ${safeSupabaseUrl ? 'present (length: ' + safeSupabaseUrl.length + ')' : 'missing'}`);
-        console.log(`- SUPABASE_ANON_KEY: ${safeSupabaseKey ? 'present (length: ' + safeSupabaseKey.length + ')' : 'missing'}`);
-        
-        if (!safeSupabaseUrl || !safeSupabaseKey) {
-            console.warn('WARNING: Missing one or more required environment variables!');
-        }
-        
-        // Create an inline script to ensure variables are available immediately
-        // We'll inject this in multiple places to ensure it's available
-        const inlineScript = `
+        // Create a direct inline script for reliable injection
+        const injectionScript = `
 <script>
-  // Directly set environment variables on window
-  window.SUPABASE_URL = "${safeSupabaseUrl}";
-  window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
-  console.log("[ENV INJECTOR] Environment variables set on window object");
-  console.log("[ENV INJECTOR] SUPABASE_URL present:", !!window.SUPABASE_URL);
-  console.log("[ENV INJECTOR] SUPABASE_ANON_KEY present:", !!window.SUPABASE_ANON_KEY);
+// ENVIRONMENT VARIABLES SET BY SERVER - DO NOT MODIFY
+window.SUPABASE_URL = "${safeSupabaseUrl}";
+window.SUPABASE_ANON_KEY = "${safeSupabaseKey}";
+console.log("Server-injected environment variables:");
+console.log("- SUPABASE_URL:", window.SUPABASE_URL ? "SET ✅" : "NOT SET ❌");
+console.log("- SUPABASE_ANON_KEY:", window.SUPABASE_ANON_KEY ? "SET ✅" : "NOT SET ❌");
 </script>`;
 
-        // Inject right after <head> tag
-        let processedHtml = html.replace('<head>', '<head>' + inlineScript);
+        // Also create a fallback mechanism that will run after page load
+        const fallbackScript = `
+<script>
+// Fallback mechanism for environment variables
+document.addEventListener('DOMContentLoaded', function() {
+  if (!window.supabaseClient && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+    try {
+      console.log("Creating Supabase client via fallback mechanism");
+      window.supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      console.log("Supabase client initialized successfully via fallback");
+    } catch (err) {
+      console.error("Failed to initialize Supabase via fallback:", err);
+    }
+  }
+});
+</script>`;
+
+        // Inject scripts at specific locations for maximum reliability
+        let processedHtml = html;
         
-        // Also replace any template variables
+        // 1. Inject main script right after <head> tag
+        processedHtml = processedHtml.replace('<head>', '<head>' + injectionScript);
+        
+        // 2. Inject fallback script before </body> tag
+        processedHtml = processedHtml.replace('</body>', fallbackScript + '</body>');
+        
+        // 3. Replace any template variables (for backward compatibility)
         processedHtml = processedHtml
             .replace(/<%=\s*process\.env\.SUPABASE_URL\s*%>/g, safeSupabaseUrl)
             .replace(/<%=\s*process\.env\.SUPABASE_ANON_KEY\s*%>/g, safeSupabaseKey);
-            
+        
         return processedHtml;
     } catch (error) {
         console.error('Error injecting environment variables:', error);
         return html; // Return original HTML if there's an error
     }
 }
+
+// File path verification endpoint (helpful for debugging)
+app.get('/file-paths', (req, res) => {
+  const basePath = __dirname;
+  const publicPath = path.join(__dirname, 'public');
+  const stylesPath = path.join(__dirname, 'public', 'styles');
+  const jsPath = path.join(__dirname, 'public', 'js');
+  
+  const exists = {
+    base: fs.existsSync(basePath),
+    public: fs.existsSync(publicPath),
+    styles: fs.existsSync(stylesPath),
+    js: fs.existsSync(jsPath),
+    'styles/style.css': fs.existsSync(path.join(stylesPath, 'style.css')),
+    'js/auth.js': fs.existsSync(path.join(jsPath, 'auth.js')),
+    'logo.svg': fs.existsSync(path.join(publicPath, 'logo.svg'))
+  };
+  
+  res.json({
+    paths: {
+      base: basePath,
+      public: publicPath,
+      styles: stylesPath,
+      js: jsPath
+    },
+    exists,
+    env: {
+      NODE_ENV: process.env.NODE_ENV
+    }
+  });
+});
 
 // Auth routes
 app.get('/auth', (req, res) => {
@@ -150,6 +186,30 @@ app.get('/', (req, res) => {
         const processedHtml = injectEnvVariables(data);
         res.send(processedHtml);
     });
+});
+
+// Environment variables verification endpoint (for debugging only)
+app.get('/env-verify', (req, res) => {
+    const envStatus = {
+        server: {
+            SUPABASE_URL: process.env.SUPABASE_URL ? 
+                `Set (length: ${process.env.SUPABASE_URL.length}, starts with: ${process.env.SUPABASE_URL.substring(0, 5)}...)` : 
+                'NOT SET',
+            SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 
+                `Set (length: ${process.env.SUPABASE_ANON_KEY.length})` : 
+                'NOT SET',
+            GROQ_API_KEY: process.env.GROQ_API_KEY ? 
+                `Set (length: ${process.env.GROQ_API_KEY.length})` : 
+                'NOT SET',
+            NODE_ENV: process.env.NODE_ENV || 'Not specified'
+        },
+        request: {
+            host: req.headers.host,
+            userAgent: req.headers['user-agent']
+        }
+    };
+    
+    res.json(envStatus);
 });
 
 // script to help diagnose server-side issues
@@ -188,20 +248,27 @@ app.post('/generate', async (req, res) => {
     try {
         const { prompt, model, temperature } = req.body;
         
+        // Log the request
+        console.log('Generate request received:');
+        console.log('- Prompt:', prompt ? prompt.substring(0, 50) + '...' : 'MISSING');
+        console.log('- Model:', model || 'default');
+        console.log('- Temperature:', temperature || 'default');
+        
         // Validate request
         if (!prompt) {
+            console.error('Error: Prompt is required');
             return res.status(400).json({ error: 'Prompt is required' });
         }
         
         // Check if GROQ API key is configured
         if (!process.env.GROQ_API_KEY) {
+            console.error('Error: GROQ_API_KEY is not configured');
             return res.status(500).json({ 
                 error: 'GROQ_API_KEY is not configured. Please check your environment variables.'
             });
         }
         
         console.log(`Generating code with model: ${model || 'mixtral-8x7b-32768'}, temperature: ${temperature || 0.7}`);
-        console.log(`Prompt: ${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}`);
         
         const completion = await groqClient.chat.completions.create({
             model: model || 'mixtral-8x7b-32768',
@@ -266,49 +333,22 @@ app.get('/projects/:userId', async (req, res) => {
     }
 });
 
-// Add this debug route to verify static file paths
-app.get('/file-paths', (req, res) => {
-    const basePath = __dirname;
-    const publicPath = path.join(__dirname, 'public');
-    const stylesPath = path.join(__dirname, 'public', 'styles');
-    const jsPath = path.join(__dirname, 'public', 'js');
-    
-    const exists = {
-      base: fs.existsSync(basePath),
-      public: fs.existsSync(publicPath),
-      styles: fs.existsSync(stylesPath),
-      js: fs.existsSync(jsPath),
-      'styles/style.css': fs.existsSync(path.join(stylesPath, 'style.css')),
-      'js/auth.js': fs.existsSync(path.join(jsPath, 'auth.js')),
-      'logo.svg': fs.existsSync(path.join(publicPath, 'logo.svg'))
-    };
-    
-    res.json({
-      paths: {
-        base: basePath,
-        public: publicPath,
-        styles: stylesPath,
-        js: jsPath
-      },
-      exists,
-      env: {
-        NODE_ENV: process.env.NODE_ENV
-      }
+// Catch-all handler for auth pages with proper HTML processing
+app.get('/auth/*', (req, res) => {
+    // This ensures all auth/* routes are handled by the server
+    const filePath = path.join(__dirname, 'public', 'auth', 'index.html');
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading auth page:', err);
+            return res.status(500).send('Error loading authentication page');
+        }
+        const processedHtml = injectEnvVariables(data);
+        res.send(processedHtml);
     });
-  });
+});
 
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('API endpoints:');
-    console.log('- POST /generate: Generate code');
-    if (supabase) {
-        console.log('- POST /save-project: Save project');
-        console.log('- GET /projects/:userId: Get projects');
-    }
-    console.log('Routes:');
-    console.log('- / : Main application');
-    console.log('- /auth : Authentication page');
-    console.log('- /auth/callback : OAuth callback handler');
+    console.log(`Legacy server listening...`);
 });
