@@ -1,17 +1,17 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { ClientOnly } from '@/components/utils/ClientOnly';
-import { chatStore } from '@/lib/stores/chat';
 import { projectStore } from '@/lib/stores/projectContext';
+import { useSupabase } from '@/components/providers/SupabaseProvider';
+import Link from 'next/link';
+import Image from 'next/image';
 import { classNames } from '../utils/classNames';
 import HeaderActionButtons from './HeaderActionButtons.client';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useSupabase } from '@/components/providers/SupabaseProvider';
 
 export function Header() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const chat = useStore(chatStore);
   const project = useStore(projectStore);
   const { user } = useSupabase();
   
