@@ -13,7 +13,7 @@
     },
     {
       "src": "/js/(.*)",
-      "dest": "/ public/js/$1"
+      "dest": "/public/js/$1"
     },
     {
       "src": "/api/(.*)",
