@@ -9,6 +9,7 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@ai-sdk/groq": "^1.1.16",
         "@supabase/auth-helpers-nextjs": "^0.8.7",
         "@supabase/auth-helpers-react": "^0.4.2",
         "@supabase/supabase-js": "^2.49.1",
@@ -16,8 +17,7 @@
         "next": "^14.2.25",
         "react": "^18",
         "react-dom": "^18",
-        "react-syntax-highlighter": "^5.8.0",
-        "@ai-sdk/groq": "^0.0.39"
+        "react-syntax-highlighter": "^5.8.0"
     },
     "devDependencies": {
         "@types/node": "^20",
