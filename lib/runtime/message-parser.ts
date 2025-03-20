@@ -1,6 +1,6 @@
-import { createScopedLogger } from '~/utils/logger';
-import type { BoltAction, BoltActionData } from '~/types/actions';
-import type { BoltArtifactData } from '~/types/artifact';
+import { createScopedLogger } from '../../components/utils/logger';
+import type { BoltAction, BoltActionData } from '../../types/actions';
+import type { BoltArtifactData } from '../../types/artifact';
 
 export interface ActionCallbackData {
   messageId: string;

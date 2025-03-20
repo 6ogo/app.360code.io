@@ -1,20 +1,40 @@
-import { json, type MetaFunction } from '@remix-run/cloudflare';
-import { ClientOnly } from 'remix-utils/client-only';
-import { BaseChat } from '~/components/chat/BaseChat';
-import { Chat } from '~/components/chat/Chat.client';
-import { Header } from '~/components/header/Header';
+import { Metadata } from 'next';
+import { ClientOnly } from '@/components/utils/ClientOnly';
+import BaseChat from '@/components/chat/BaseChat';
+import { Header } from '@/components/header/Header';
+import dynamic from 'next/dynamic';
 
-export const meta: MetaFunction = () => {
-  return [{ title: '360code.io - AI-Powered Code Generator' }, { name: 'description', content: '360code.io - Generate complete projects with AI coding assistance' }];
+// Dynamically import the components with SSR disabled
+const Chat = dynamic(() => import('@/components/chat/Chat.client'), {
+  ssr: false,
+});
+
+const FileExplorer = dynamic(() => import('@/components/FileExplorer'), {
+  ssr: false,
+});
+
+const ProjectProgress = dynamic(() => import('@/components/ProjectProgress'), {
+  ssr: false,
+});
+
+export const metadata: Metadata = {
+  title: '360code.io - AI-Powered Code Generator',
+  description: '360code.io - Generate complete projects with AI coding assistance',
 };
-
-export const loader = () => json({});
 
 export default function Index() {
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-screen w-full">
       <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
+      <ClientOnly fallback={<BaseChat showChat={true} chatStarted={false} isStreaming={false} messages={[]} input="" handleInputChange={() => {}} handleStop={() => {}} sendMessage={() => {}} />}>
+        {() => (
+          <>
+            <Chat />
+            <FileExplorer />
+            <ProjectProgress />
+          </>
+        )}
+      </ClientOnly>
     </div>
   );
 }

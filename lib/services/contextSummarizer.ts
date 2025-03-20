@@ -1,3 +1,8 @@
+// lib/services/contextSummarizer.ts
+
+/**
+ * Creates a concise summary of project context elements
+ */
 export const summarizeContext = async (
     documentation: string,
     fileChanges: string,
@@ -20,4 +25,3 @@ export const summarizeContext = async (
   Project context:
   ${lastContext.substring(0, 1000)}... (truncated)`;
   };
-  

@@ -1,5 +1,6 @@
-import type { FileMap } from '~/lib/stores/files';
-import { projectStore } from '~/lib/stores/projectContext';
+// lib/services/documentationGenerator.ts
+import { projectStore } from '@/lib/stores/projectContext';
+import { FileMap } from '@/lib/stores/files';
 
 export const generateDocumentation = (
   fileMap: FileMap,

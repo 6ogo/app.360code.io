@@ -1,5 +1,5 @@
-import { projectStore } from '~/lib/stores/projectContext';
-import type { Message } from 'ai';
+import { projectStore } from '@/lib/stores/projectContext';
+import { Message } from 'ai';
 import { summarizeContext } from './contextSummarizer';
 
 const MAX_TOKENS = 8000; // Adjust based on model constraints
@@ -23,10 +23,8 @@ export const continueProject = async (messages: Message[]): Promise<Message[]> =
     project.lastContext
   );
   
-  // Create continuation message
-  const continuationMessage: Message = {
-    role: 'user',
-    content: `Let's continue the development of the project.
+  // Generate a continuation prompt with unique ID
+  const continuationPrompt = `Let's continue the development of the project.
 
 Here's what has been done so far:
 ${contextSummary}
@@ -35,7 +33,13 @@ Current status is: ${project.status}
 Current step: ${project.currentStep}
 Last developed features: ${project.documentation[project.documentation.length - 1] || 'No documentation yet'}
 
-Please continue where you left off and complete the next steps of the project.`
+Please continue where you left off and complete the next steps of the project.`;
+  
+  // Create a continuation message with ID
+  const continuationMessage: Message = {
+    id: Date.now().toString(),
+    role: 'user',
+    content: continuationPrompt
   };
   
   // Combine most recent messages with continuation message

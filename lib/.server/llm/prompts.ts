@@ -1,6 +1,6 @@
-import { MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
-import { allowedHTMLElements } from '~/utils/markdown';
-import { stripIndents } from '~/utils/stripIndent';
+import { MODIFICATIONS_TAG_NAME, WORK_DIR } from '../../../components/utils/constants';
+import { allowedHTMLElements } from '../../../components/utils/markdown';
+import { stripIndents } from '../../../components/utils/stripIndent';
 
 export const getSystemPrompt = (cwd: string = WORK_DIR) => `
 You are 360code.io, an advanced AI coding assistant specialized in developing complete projects from scratch. You understand project requirements, generate code, and implement entire applications step by step.

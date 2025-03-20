@@ -1,5 +1,8 @@
+// components/ProjectStatus.tsx
+'use client';
+
 import { useStore } from '@nanostores/react';
-import { projectStore } from '~/lib/stores/projectContext';
+import { projectStore } from '@/lib/stores/projectContext';
 
 export function ProjectStatus() {
   const project = useStore(projectStore);

@@ -1,18 +1,24 @@
+// components/chat/Chat.client.tsx
+'use client';
+
 import { useChat } from 'ai/react';
 import { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
-import { projectStore } from '~/lib/stores/projectContext';
-import { continueProject } from '~/lib/services/projectContinuation';
-import { generateDocumentation } from '~/lib/services/documentationGenerator';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { BaseChat } from './BaseChat';
-import { useSnapScroll, useMessageParser } from '~/lib/hooks';
+import { projectStore } from '@/lib/stores/projectContext';
+import { continueProject } from '@/lib/services/projectContinuation';
+import { generateDocumentation } from '@/lib/services/documentationGenerator';
+import { workbenchStore } from '@/lib/stores/workbench';
+import BaseChat from './BaseChat';
+import { useSnapScroll, useMessageParser } from '@/lib/hooks';
 import { ToastContainer, toast } from 'react-toastify';
-import { ProjectStatus } from '~/components/ProjectStatus';
-import { DocumentationViewer } from '~/components/DocumentationViewer';
-import { ProjectSummary } from '~/components/ProjectSummary';
+import 'react-toastify/dist/ReactToastify.css';
+import { ProjectStatus } from '@/components/ProjectStatus';
+import { DocumentationViewer } from '@/components/DocumentationViewer';
+import { ProjectSummary } from '@/components/ProjectSummary';
+import { Message } from 'ai';
+import { AppMessage, convertToAppMessage } from '@/types/message';
 
-export function Chat() {
+export default function Chat() {
   const [messageRef, scrollRef] = useSnapScroll();
   const { parsedMessages, parseMessages } = useMessageParser();
   const [isStreaming, setIsStreaming] = useState(false);
@@ -41,7 +47,7 @@ export function Chat() {
         const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
         if (lastAssistantMessage) {
           const description = lastAssistantMessage.content.substring(0, 200) + '...';
-          generateDocumentation(files.get(), description);
+          generateDocumentation(files, description);
           
           // Update project status
           const currentProject = projectStore.get();
@@ -59,7 +65,7 @@ export function Chat() {
     onError: (error) => {
       setIsStreaming(false);
       setIsContinuing(false);
-      toast.error(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message || 'An error occurred'}`);
     }
   });
 
@@ -97,7 +103,18 @@ export function Chat() {
       
       // Submit the continuation message
       const lastMessage = continuationMessages[continuationMessages.length - 1];
-      handleSubmit(new Event('continue') as any, lastMessage.content);
+      
+      // Create a form event and submit the message
+      const form = document.createElement('form');
+      const submitEvent = new SubmitEvent('submit', { 
+        bubbles: true, 
+        cancelable: true, 
+        submitter: form 
+      });
+      
+      handleSubmit(submitEvent, {
+        body: lastMessage.content
+      });
     } catch (error) {
       console.error('Failed to continue project:', error);
       toast.error('Failed to continue the project');
@@ -107,32 +124,38 @@ export function Chat() {
 
   const chatStarted = messages.length > 0;
 
+  // Convert AI messages to our app's message format
+  const convertedMessages: AppMessage[] = messages.map((message, index) => ({
+    role: message.role === 'user' || message.role === 'assistant' ? message.role : 'assistant',
+    content: parsedMessages[index] || (typeof message.content === 'string' ? message.content : '')
+  }));
+
   return (
     <>
       <BaseChat
         ref={scrollRef}
         messageRef={messageRef}
-        textareaRef={undefined}
         showChat={true}
         chatStarted={chatStarted}
         isStreaming={isStreaming}
-        messages={messages.map((message, i) => ({
-          ...message,
-          content: parsedMessages[i] || message.content,
-        }))}
+        messages={convertedMessages}
         input={input}
         handleInputChange={handleInputChange}
         handleStop={stop}
         sendMessage={handleSubmit}
       />
       
-      <ProjectStatus />
+      {/* Keep the old components available, but hide them as they're replaced by improved ones */}
+      <div className="hidden">
+        <ProjectStatus />
+      </div>
+      
       <DocumentationViewer />
       <ProjectSummary />
       
       {project.status === 'paused' && !isStreaming && !isContinuing && (
         <button 
-          className="fixed bottom-24 right-4 z-10 bg-accent-500 text-white px-4 py-2 rounded-md shadow-lg"
+          className="fixed bottom-24 right-4 z-10 bg-primary text-white px-4 py-2 rounded-md shadow-lg"
           onClick={continueProjectExecution}
         >
           Continue Project
@@ -142,4 +165,4 @@ export function Chat() {
       <ToastContainer position="bottom-right" />
     </>
   );
-  
+}

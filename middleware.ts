@@ -1,11 +1,34 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
   // Create a Supabase client for the middleware
   const response = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res: response })
+  
+  // Create a Supabase client using the new API
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => request.cookies.get(name)?.value,
+        set: (name, value, options) => {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove: (name, options) => {
+          response.cookies.delete({
+            name,
+            ...options,
+          })
+        },
+      },
+    }
+  )
 
   try {
     // Refresh the session

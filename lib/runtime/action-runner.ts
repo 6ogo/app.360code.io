@@ -1,8 +1,8 @@
 import type { WebContainer } from '@webcontainer/api';
 import { join } from 'path';
 import type { ActionCallbackData } from './message-parser';
-import { createScopedLogger } from '~/utils/logger';
-import { coloredText } from '~/utils/terminal';
+import { createScopedLogger } from '../../components/utils/logger';
+import { coloredText } from '../../components/utils/terminal';
 
 const logger = createScopedLogger('ActionRunner');
 
