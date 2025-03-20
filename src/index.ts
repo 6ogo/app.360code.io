@@ -1,14 +1,6 @@
 // API Configuration - Change this to match your actual API URL
 export {}; // Makes this file a module with its own scope
 
-declare global {
-  interface Window {
-    API_BASE_URL?: string;
-  }
-}
-
-window.API_BASE_URL = "https://app.360code.io"; // Change this to your actual API URL
-
 // Conversation management
 interface Message {
     role: 'user' | 'assistant';
@@ -65,6 +57,9 @@ const copyEnvButton = document.getElementById('copyEnvButton') as HTMLElement;
 const copyConnectionButton = document.getElementById('copyConnectionButton') as HTMLElement;
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
+const userInfo = document.getElementById('userInfo') as HTMLElement;
+const userMenuInfo = document.getElementById('userMenuInfo') as HTMLElement;
+const loadingModal = document.getElementById('loadingModal') as HTMLElement;
 
 // Event Listeners
 window.addEventListener('DOMContentLoaded', () => {
@@ -101,6 +96,13 @@ if (promptElement) {
             e.preventDefault();
             generateCode();
         }
+    });
+    
+    // Add auto-resize for textarea
+    promptElement.addEventListener('input', function() {
+        this.style.height = 'auto';
+        const newHeight = Math.min(this.scrollHeight, 200);
+        this.style.height = `${newHeight}px`;
     });
 }
 
@@ -156,9 +158,104 @@ tabs.forEach(tab => {
     });
 });
 
+// Setup profile menu toggle
+const profileButton = document.getElementById('profileButton');
+const userMenu = document.getElementById('userMenu');
+
+if (profileButton && userMenu) {
+    profileButton.addEventListener('click', () => {
+        userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!profileButton.contains(event.target as Node) && 
+            !userMenu.contains(event.target as Node)) {
+            userMenu.style.display = 'none';
+        }
+    });
+}
+
+// Setup sign out buttons
+const signOutButton = document.getElementById('signOutButton');
+const signOutButtonMenu = document.getElementById('signOutButtonMenu');
+
+const signOutHandler = async () => {
+    try {
+        const supabase = window.supabaseClient;
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
+        window.location.href = '/auth';
+    } catch (error) {
+        console.error('Error signing out:', error);
+        showToast('Failed to sign out. Please try again.', 'error');
+    }
+};
+
+if (signOutButton) signOutButton.addEventListener('click', signOutHandler);
+if (signOutButtonMenu) signOutButtonMenu.addEventListener('click', signOutHandler);
+
 // Main functionality
+// Expose this function to window for use in HTML
+window.initializeApp = initializeApp;
+
 function initializeApp(): void {
+    // Check if user is authenticated
+    const supabase = window.supabaseClient;
+    
+    if (!supabase) {
+        console.error('Supabase client not available');
+        if (loadingModal) loadingModal.classList.remove('visible');
+        
+        showToast('Authentication service unavailable. Some features may not work properly.', 'error');
+        
+        // Still attempt to load local data
+        loadLocalConversations();
+        return;
+    }
+    
+    // Hide loading modal when auth check is already handled in HTML
+    if (loadingModal) loadingModal.classList.remove('visible');
+    
+    // Initialize UI components
+    autoResizeTextarea(promptElement);
+    
+    // Show welcome message
+    showWelcomeMessage();
+    
+    // Load conversation history
     loadConversationHistory();
+}
+
+function autoResizeTextarea(textarea: HTMLTextAreaElement | null): void {
+    if (!textarea) return;
+    
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(textarea.scrollHeight, 200);
+    textarea.style.height = `${newHeight}px`;
+}
+
+function showWelcomeMessage(): void {
+    if (!chatMessages) return;
+    
+    // Clear chat area first
+    chatMessages.innerHTML = '';
+    
+    // Add welcome message
+    const welcomeMessage = document.createElement('div');
+    welcomeMessage.className = 'ai-message message';
+    welcomeMessage.innerHTML = `
+        <p class="font-medium">Welcome to 360code.io!</p>
+        <p style="margin-top: 0.75rem;">I can help you generate code for your projects. Try prompts like:</p>
+        <ul style="margin-top: 0.5rem; margin-left: 1.5rem; list-style-type: disc;">
+            <li>"Create a simple snake game"</li>
+            <li>"Build a to-do list app with React"</li>
+            <li>"Generate a landing page for a fitness app"</li>
+        </ul>
+        <p style="margin-top: 0.75rem;">Your projects can include Supabase integration for backend functionality.</p>
+    `;
+    chatMessages.appendChild(welcomeMessage);
 }
 
 function startNewChat(): void {
@@ -167,23 +264,8 @@ function startNewChat(): void {
         saveConversation(currentConversation);
     }
     
-    // Clear chat
-    chatMessages.innerHTML = '';
-    
-    // Add welcome message
-    const welcomeMessage = document.createElement('div');
-    welcomeMessage.className = 'ai-message message';
-    welcomeMessage.innerHTML = `
-        <p class="font-medium">Welcome to 360code.io!</p>
-        <p class="mt-2">I can help you generate code for your projects. Try prompts like:</p>
-        <ul class="mt-2 space-y-1 list-disc list-inside">
-            <li>"Create a simple snake game"</li>
-            <li>"Build a to-do list app with React"</li>
-            <li>"Generate a landing page for a fitness app"</li>
-        </ul>
-        <p class="mt-2">Your projects can include Supabase integration for backend functionality.</p>
-    `;
-    chatMessages.appendChild(welcomeMessage);
+    // Reset the chat
+    showWelcomeMessage();
     
     // Reset current conversation
     currentConversation = {
@@ -199,20 +281,23 @@ function startNewChat(): void {
     };
     
     // Clear input
-    promptElement.value = '';
+    if (promptElement) promptElement.value = '';
+    
+    // Close sidebar on mobile
     sidebar.classList.remove('open');
 }
 
 async function generateCode(): Promise<void> {
     const message = promptElement.value.trim();
     if (!message) {
-        alert('Please enter a prompt.');
+        showToast('Please enter a prompt.', 'error');
         return;
     }
 
     // Disable input during processing
     promptElement.disabled = true;
     sendButton.classList.add('disabled');
+    sendButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
     
     // Add user message to UI
     addMessageToUI('user', message);
@@ -247,7 +332,7 @@ async function generateCode(): Promise<void> {
         
         // Generate response using the appropriate API URL
         // For local development, use relative path. For production, use the full URL.
-        const apiUrl = window.API_BASE_URL ? `${window.API_BASE_URL}/api/generate` : '/api/generate';
+        const apiUrl = window.API_BASE_URL ? `${window.API_BASE_URL}/generate` : '/generate';
         
         console.log(`Sending request to: ${apiUrl}`);
         
@@ -355,10 +440,12 @@ const supabase = createClient(supabaseUrl, supabaseKey)`;
     } catch (error) {
         console.error('Error:', error);
         updateAIMessage(aiMessageElement, `Error: ${(error as Error).message}. Please make sure your server is running and properly configured.`);
+        showToast(`Error: ${(error as Error).message}`, 'error');
     } finally {
         // Re-enable input
         promptElement.disabled = false;
         sendButton.classList.remove('disabled');
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
     }
 }
 
@@ -398,6 +485,9 @@ function updateAIMessage(messageElement: HTMLElement, content: string): void {
         });
         messageElement.appendChild(viewProjectBtn);
     }
+    
+    // Scroll to the bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function processMessageContent(content: string): string {
@@ -493,6 +583,38 @@ function openProjectModal(conversation: Conversation): void {
     projectViewModal.classList.add('visible');
 }
 
+// Show toast notification
+function showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    toast.innerHTML = `
+        <div class="flex items-center gap-2">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <div>${message}</div>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Remove after delay
+    setTimeout(() => {
+        if (toastContainer.contains(toast)) {
+            toastContainer.removeChild(toast);
+        }
+    }, 5000);
+}
+
 // Utility Functions
 function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -507,28 +629,34 @@ function escapeHtml(html: string): string {
 function copyTextToClipboard(text: string): void {
     navigator.clipboard.writeText(text)
         .then(() => {
-            alert('Copied to clipboard!');
+            showToast('Copied to clipboard!', 'success');
         })
         .catch(err => {
             console.error('Failed to copy: ', err);
+            showToast('Failed to copy text', 'error');
         });
 }
 
 // Storage Functions
 async function saveConversation(conversation: Conversation): Promise<any> {
     try {
-        // Check if Supabase is available (using the global variable from index.html)
-        const supabase = (window as any).supabaseClient;
+        // Check if Supabase is available
+        const supabase = window.supabaseClient;
         
         if (supabase) {
             try {
                 // Get current user
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data } = await supabase.auth.getUser();
+                const user = data?.user;
                 
-                const userId = user ? user.id : 'anonymous';
+                if (!user) {
+                    throw new Error('User not authenticated');
+                }
+                
+                const userId = user.id;
                 
                 // Save to Supabase
-                const { data, error } = await supabase
+                const { data: upsertData, error } = await supabase
                     .from('conversations')
                     .upsert([
                         {
@@ -550,7 +678,7 @@ async function saveConversation(conversation: Conversation): Promise<any> {
                 
                 if (error) throw error;
                 
-                return data;
+                return upsertData;
             } catch (error) {
                 console.error('Supabase error:', error);
                 // Fall back to localStorage
@@ -569,29 +697,24 @@ async function saveConversation(conversation: Conversation): Promise<any> {
 
 async function loadConversationHistory(): Promise<void> {
     try {
-        // Check if Supabase is available (using the global variable from index.html)
-        const supabase = (window as any).supabaseClient;
+        // Check if Supabase is available
+        const supabase = window.supabaseClient;
         
         if (supabase) {
             try {
-                // Try to get current user
+                // Get current user
                 const { data, error } = await supabase.auth.getUser();
                 
-                if (error || !data.user) {
-                    // Create anonymous session
-                    console.log('No authenticated user, creating anonymous session');
-                    const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
-                    
-                    if (signInError) {
-                        console.error('Error creating anonymous session:', signInError);
-                        loadLocalConversations();
-                        return;
-                    }
+                if (error || !data?.user) {
+                    console.error('No authenticated user');
+                    window.location.href = '/auth';
+                    return;
                 }
                 
-                // Now we should have a user (anonymous or authenticated)
-                const { data: userData } = await supabase.auth.getUser();
-                const userId = userData.user?.id || 'anonymous';
+                const userId = data.user.id;
+                
+                // Update user info in UI
+                updateUserInfo(data.user);
                 
                 // Get conversations from Supabase
                 const { data: conversationsData, error: conversationsError } = await supabase
@@ -614,7 +737,7 @@ async function loadConversationHistory(): Promise<void> {
                 }
             } catch (error) {
                 console.error('Error in Supabase authentication flow:', error);
-                loadLocalConversations();
+                window.location.href = '/auth';
             }
         } else {
             // Supabase not available, load from localStorage
@@ -624,6 +747,24 @@ async function loadConversationHistory(): Promise<void> {
         console.error('Error loading conversations:', error);
         // Try to load from localStorage as fallback
         loadLocalConversations();
+    }
+}
+
+// Update user info in the UI
+function updateUserInfo(user: any): void {
+    if (!user) return;
+    
+    // Update sidebar user info
+    if (userInfo) {
+        userInfo.innerHTML = `
+            <p class="user-name">${user.email.split('@')[0]}</p>
+            <p class="user-email text-xs text-bolt-elements-textSecondary truncate">${user.email}</p>
+        `;
+    }
+
+    // Update user menu info
+    if (userMenuInfo) {
+        userMenuInfo.innerHTML = `<p><strong>${user.email}</strong></p>`;
     }
 }
 
@@ -664,12 +805,12 @@ function renderConversationHistory(conversations: Conversation[]): void {
     
     conversations.forEach(conversation => {
         const historyItem = document.createElement('div');
-        historyItem.className = 'project-card bg-white rounded-md p-3 border border-gray-200 hover:bg-gray-50 cursor-pointer';
+        historyItem.className = 'project-card';
         historyItem.innerHTML = `
             <div class="flex justify-between items-start">
                 <div class="truncate">
-                    <h3 class="font-medium text-gray-900 truncate">${conversation.title}</h3>
-                    <p class="text-xs text-gray-500">
+                    <h3 class="project-title">${conversation.title}</h3>
+                    <p class="project-date">
                         ${new Date(conversation.updated_at || conversation.id).toLocaleString()}
                     </p>
                 </div>

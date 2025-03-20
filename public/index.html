@@ -46,6 +46,17 @@
                     <p id="noHistoryMessage" class="empty-message">No projects yet</p>
                 </div>
             </div>
+
+            <div class="flex items-center border-t border-bolt-elements-borderColor p-4">
+                <div id="userInfo" class="flex-1 truncate text-sm text-bolt-elements-textPrimary">
+                    <p class="user-name">Loading user...</p>
+                    <p class="user-email text-xs text-bolt-elements-textSecondary truncate">Please wait</p>
+                </div>
+                <button id="signOutButton"
+                    class="bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary px-2 py-1 rounded">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content -->
@@ -67,25 +78,24 @@
                             class="temperature-slider">
                         <span id="temperatureValue" class="temperature-value">0.7</span>
                     </div>
+                    <div id="userMenuContainer" class="relative">
+                        <button id="profileButton" class="profile-button">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <div id="userMenu" class="user-menu" style="display: none;">
+                            <div id="userMenuInfo" class="user-info">
+                                <p><strong>Loading...</strong></p>
+                            </div>
+                            <button id="signOutButtonMenu" class="menu-item">Sign Out</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Chat Area -->
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <!-- Welcome message -->
-                    <div class="ai-message message">
-                        <p class="font-medium">Welcome to 360code.io!</p>
-                        <p style="margin-top: 0.75rem;">I can help you generate code for your projects. Try prompts
-                            like:</p>
-                        <ul style="margin-top: 0.5rem; margin-left: 1.5rem; list-style-type: disc;">
-                            <li>"Create a simple snake game"</li>
-                            <li>"Build a to-do list app with React"</li>
-                            <li>"Generate a landing page for a fitness app"</li>
-                        </ul>
-                        <p style="margin-top: 0.75rem;">Your projects can include Supabase integration for backend
-                            functionality.</p>
-                    </div>
+                    <!-- Welcome message - will be added by JS after auth check -->
                 </div>
 
                 <!-- Input Area -->
@@ -233,108 +243,202 @@
             </div>
         </div>
 
-        <!-- Authentication Modal -->
-        <div id="authModal" class="modal-overlay">
-            <div class="modal-container" style="max-width: 480px;">
+        <!-- Authentication Check Modal -->
+        <div id="authCheckModal" class="modal-overlay">
+            <div class="modal-container" style="max-width: 400px;">
                 <div class="modal-header">
-                    <h2 class="modal-title">Sign In / Sign Up</h2>
-                    <button id="closeAuthModalButton" class="close-modal">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <h2 class="modal-title">Authentication Required</h2>
                 </div>
-                <div class="auth-content" style="padding: 1.5rem;">
-                    <div id="authTabs" class="tabs-container">
-                        <div class="tab active" data-auth-tab="signin">Sign In</div>
-                        <div class="tab" data-auth-tab="signup">Sign Up</div>
+                <div style="padding: 1.5rem;">
+                    <p class="mb-4">You need to be logged in to use 360code.io.</p>
+                    <div class="flex justify-end gap-2">
+                        <button id="redirectToLoginBtn" class="auth-submit-btn">Go to Login</button>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <div id="signinTab" class="auth-tab-content">
-                        <form id="signinForm" style="margin-top: 1.5rem;">
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="signinEmail"
-                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem;">Email</label>
-                                <input type="email" id="signinEmail" class="auth-input" required
-                                    style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.5); color: hsl(var(--foreground));">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 1.5rem;">
-                                <label for="signinPassword"
-                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem;">Password</label>
-                                <input type="password" id="signinPassword" class="auth-input" required
-                                    style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.5); color: hsl(var(--foreground));">
-                            </div>
-                            <button type="submit" class="auth-submit-btn"
-                                style="width: 100%; background: linear-gradient(90deg, hsl(217, 91%, 60%) 0%, hsl(224, 76%, 48%) 100%); color: white; border: none; border-radius: 0.375rem; padding: 0.75rem; font-weight: 500; cursor: pointer;">Sign
-                                In</button>
-                        </form>
-
-                        <div style="margin-top: 1.5rem; text-align: center;">
-                            <p style="margin-bottom: 1rem; color: hsl(var(--muted-foreground));">Or sign in with</p>
-                            <div style="display: flex; gap: 1rem; justify-content: center;">
-                                <button id="githubSignIn" class="social-auth-btn"
-                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.7); cursor: pointer;">
-                                    <i class="fab fa-github"></i>
-                                    <span>GitHub</span>
-                                </button>
-                                <button id="googleSignIn" class="social-auth-btn"
-                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.7); cursor: pointer;">
-                                    <i class="fab fa-google"></i>
-                                    <span>Google</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="signupTab" class="auth-tab-content" style="display: none;">
-                        <form id="signupForm" style="margin-top: 1.5rem;">
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="signupEmail"
-                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem;">Email</label>
-                                <input type="email" id="signupEmail" class="auth-input" required
-                                    style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.5); color: hsl(var(--foreground));">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 1.5rem;">
-                                <label for="signupPassword"
-                                    style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem;">Password</label>
-                                <input type="password" id="signupPassword" class="auth-input" required
-                                    style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.5); color: hsl(var(--foreground));">
-                            </div>
-                            <button type="submit" class="auth-submit-btn"
-                                style="width: 100%; background: linear-gradient(90deg, hsl(217, 91%, 60%) 0%, hsl(224, 76%, 48%) 100%); color: white; border: none; border-radius: 0.375rem; padding: 0.75rem; font-weight: 500; cursor: pointer;">Sign
-                                Up</button>
-                        </form>
-
-                        <div style="margin-top: 1.5rem; text-align: center;">
-                            <p style="margin-bottom: 1rem; color: hsl(var(--muted-foreground));">Or sign up with</p>
-                            <div style="display: flex; gap: 1rem; justify-content: center;">
-                                <button id="githubSignUp" class="social-auth-btn"
-                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.7); cursor: pointer;">
-                                    <i class="fab fa-github"></i>
-                                    <span>GitHub</span>
-                                </button>
-                                <button id="googleSignUp" class="social-auth-btn"
-                                    style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid hsla(var(--border) / 0.5); background-color: hsla(var(--card) / 0.7); cursor: pointer;">
-                                    <i class="fab fa-google"></i>
-                                    <span>Google</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Loading Modal -->
+        <div id="loadingModal" class="modal-overlay visible">
+            <div class="flex items-center justify-center h-full">
+                <div class="bg-bolt-elements-background-depth-2 rounded-lg p-8 flex flex-col items-center">
+                    <div class="spinner" style="width: 40px; height: 40px;"></div>
+                    <p class="mt-4 text-bolt-elements-textPrimary">Loading application...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Initialize Supabase -->
+    <!-- Template for loading indicator -->
+    <template id="loadingIndicatorTemplate">
+        <div class="flex items-center space-x-2 my-2">
+            <div class="spinner"></div>
+            <div class="text-bolt-elements-textSecondary">Generating code...</div>
+        </div>
+    </template>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Add Supabase library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+
+    <!-- Initialize Supabase client with environment variables -->
     <script>
-        // Initialize Supabase client with environment variables
-        window.SUPABASE_URL = "REPLACE_SUPABASE_URL";
-        window.SUPABASE_ANON_KEY = "REPLACE_SUPABASE_KEY";
+        // Initialize Supabase client with environment variables from server
+        const supabaseUrl = '<%= process.env.SUPABASE_URL %>';
+        const supabaseKey = '<%= process.env.SUPABASE_ANON_KEY %>';
+        let supabaseClient = null;
+
+        try {
+            if (supabaseUrl && supabaseKey &&
+                supabaseUrl !== '' &&
+                supabaseKey !== '' &&
+                !supabaseUrl.includes('process.env') &&
+                !supabaseKey.includes('process.env')) {
+
+                console.log('Initializing Supabase with valid credentials');
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase initialized successfully');
+            } else {
+                console.warn('Supabase credentials missing or invalid');
+                // Show error toast if credentials are missing
+                setTimeout(() => {
+                    const toastContainer = document.getElementById('toastContainer');
+                    if (toastContainer) {
+                        const toast = document.createElement('div');
+                        toast.className = 'toast toast-error';
+                        toast.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <div>Supabase credentials missing or invalid. Please check your server configuration.</div>
+                            </div>
+                        `;
+                        toastContainer.appendChild(toast);
+                        setTimeout(() => toastContainer.removeChild(toast), 5000);
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+        }
+
+        // Expose supabase client to window for use in other scripts
+        window.supabaseClient = supabaseClient;
     </script>
 
-    <!-- App Scripts -->
-    <script src="js/auth.js"></script>
+    <!-- Load the JavaScript files -->
+    <script src="js/main.js"></script>
     <script src="js/index.js"></script>
+    <script src="js/auth.js"></script>
+
+    <!-- Auth check script to ensure users are logged in -->
+    <script>
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingModal = document.getElementById('loadingModal');
+            const authCheckModal = document.getElementById('authCheckModal');
+            const redirectToLoginBtn = document.getElementById('redirectToLoginBtn');
+
+            if (redirectToLoginBtn) {
+                redirectToLoginBtn.addEventListener('click', () => {
+                    window.location.href = '/auth';
+                });
+            }
+
+            // Function to check auth and redirect if needed
+            async function checkAuthAndRedirect() {
+                try {
+                    if (!window.supabaseClient) {
+                        console.error('Supabase client not available');
+                        if (loadingModal) loadingModal.classList.remove('visible');
+                        if (authCheckModal) authCheckModal.classList.add('visible');
+                        return;
+                    }
+
+                    const { data, error } = await window.supabaseClient.auth.getUser();
+
+                    if (error || !data?.user) {
+                        console.log('User not authenticated, showing auth modal');
+                        if (loadingModal) loadingModal.classList.remove('visible');
+                        if (authCheckModal) authCheckModal.classList.add('visible');
+                    } else {
+                        console.log('User authenticated:', data.user.email);
+                        // Update user info
+                        updateUserInfo(data.user);
+                        // Hide loading modal
+                        if (loadingModal) loadingModal.classList.remove('visible');
+                        // Initialize the app
+                        if (typeof window.initializeApp === 'function') {
+                            window.initializeApp();
+                        } else {
+                            console.error('initializeApp function not found');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Auth check error:', err);
+                    if (loadingModal) loadingModal.classList.remove('visible');
+                    if (authCheckModal) authCheckModal.classList.add('visible');
+                }
+            }
+
+            // Update UI with user info
+            function updateUserInfo(user) {
+                // Update sidebar user info
+                const userInfo = document.getElementById('userInfo');
+                if (userInfo) {
+                    userInfo.innerHTML = `
+                        <p class="user-name">${user.email.split('@')[0]}</p>
+                        <p class="user-email text-xs text-bolt-elements-textSecondary truncate">${user.email}</p>
+                    `;
+                }
+
+                // Update user menu info
+                const userMenuInfo = document.getElementById('userMenuInfo');
+                if (userMenuInfo) {
+                    userMenuInfo.innerHTML = `<p><strong>${user.email}</strong></p>`;
+                }
+
+                // Setup sign out buttons
+                const signOutButton = document.getElementById('signOutButton');
+                const signOutButtonMenu = document.getElementById('signOutButtonMenu');
+
+                const signOutHandler = async () => {
+                    try {
+                        await window.supabaseClient.auth.signOut();
+                        window.location.href = '/auth';
+                    } catch (error) {
+                        console.error('Error signing out:', error);
+                    }
+                };
+
+                if (signOutButton) signOutButton.addEventListener('click', signOutHandler);
+                if (signOutButtonMenu) signOutButtonMenu.addEventListener('click', signOutHandler);
+            }
+
+            // Add event listener for user menu toggle
+            const profileButton = document.getElementById('profileButton');
+            const userMenu = document.getElementById('userMenu');
+
+            if (profileButton && userMenu) {
+                profileButton.addEventListener('click', () => {
+                    userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
+                });
+
+                // Close menu when clicking outside
+                document.addEventListener('click', (event) => {
+                    if (profileButton && userMenu &&
+                        !profileButton.contains(event.target) &&
+                        !userMenu.contains(event.target)) {
+                        userMenu.style.display = 'none';
+                    }
+                });
+            }
+
+            // Check auth after a slight delay to ensure Supabase is initialized
+            setTimeout(checkAuthAndRedirect, 500);
+        });
+    </script>
 </body>
 
 </html>

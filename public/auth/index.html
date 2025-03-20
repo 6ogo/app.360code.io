@@ -396,8 +396,8 @@
     <!-- Initialize Supabase client -->
     <script>
         // Initialize Supabase client with environment variables
-        const supabaseUrl = "REPLACE_SUPABASE_URL";
-        const supabaseKey = "REPLACE_SUPABASE_KEY";
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
         let supabaseClient = null;
 
         try {

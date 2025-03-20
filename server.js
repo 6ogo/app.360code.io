@@ -24,10 +24,24 @@ app.use(express.static('public', {
   }));
   
 // Debug: Print environment variables
-console.log('Environment variables:');
-console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? 'set' : 'NOT SET');
-console.log('- SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'set' : 'NOT SET');
-console.log('- GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'set' : 'NOT SET');
+console.log('Environment variables check:');
+console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? 'set (length: ' + process.env.SUPABASE_URL.length + ')' : 'NOT SET');
+console.log('- SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'set (length: ' + process.env.SUPABASE_ANON_KEY.length + ')' : 'NOT SET');
+console.log('- GROQ_API_KEY:', process.env.GROQ_API_KEY ? 'set (length: ' + process.env.GROQ_API_KEY.length + ')' : 'NOT SET');
+
+// Validate environment variables
+const validateEnvVars = () => {
+  const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'GROQ_API_KEY'];
+  const missing = required.filter(key => !process.env[key] || process.env[key].trim() === '');
+  
+  if (missing.length > 0) {
+    console.error(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
+    console.error('Please add these to your .env file or environment configuration');
+    // We'll continue execution but log the warning
+  }
+};
+
+validateEnvVars();
 
 // Initialize Groq client
 const groqClient = new GroqSDK({ apiKey: process.env.GROQ_API_KEY });
@@ -35,7 +49,6 @@ const groqClient = new GroqSDK({ apiKey: process.env.GROQ_API_KEY });
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const groqApiKey = process.env.GROQ_API_KEY;
 let supabase = null;
 
 if (supabaseUrl && supabaseKey) {
@@ -60,13 +73,23 @@ if (supabaseUrl && supabaseKey) {
 
 // Templating function to inject environment variables
 function injectEnvVariables(html) {
-    // Wrap values in quotes to ensure they're properly formatted as JavaScript strings
-    const supabaseUrl = process.env.SUPABASE_URL ? `"${process.env.SUPABASE_URL}"` : '""';
-    const supabaseKey = process.env.SUPABASE_ANON_KEY ? `"${process.env.SUPABASE_ANON_KEY}"` : '""';
+    // Only inject if the variables are actually defined
+    const envVars = {
+        SUPABASE_URL: process.env.SUPABASE_URL || '',
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ''
+    };
+    
+    // Log what we're injecting (without showing full keys)
+    Object.entries(envVars).forEach(([key, value]) => {
+        const displayValue = value ? 
+            value.substring(0, 5) + '...' + (value.length > 10 ? value.substring(value.length - 5) : '') : 
+            'empty';
+        console.log(`Injecting ${key}: ${displayValue}`);
+    });
     
     return html
-        .replace(/\"REPLACE_SUPABASE_URL\"/g, process.env.SUPABASE_URL ? `"${process.env.SUPABASE_URL}"` : '""')
-        .replace(/\"REPLACE_SUPABASE_KEY\"/g, process.env.SUPABASE_ANON_KEY ? `"${process.env.SUPABASE_ANON_KEY}"` : '""');
+        .replace('<%= process.env.SUPABASE_URL %>', envVars.SUPABASE_URL)
+        .replace('<%= process.env.SUPABASE_ANON_KEY %>', envVars.SUPABASE_ANON_KEY);
 }
 
 // Auth routes
@@ -107,8 +130,11 @@ app.get('/debug', (req, res) => {
             NODE_ENV: process.env.NODE_ENV,
             PORT: process.env.PORT,
             SUPABASE_URL_SET: !!process.env.SUPABASE_URL,
+            SUPABASE_URL_LENGTH: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.length : 0,
             SUPABASE_ANON_KEY_SET: !!process.env.SUPABASE_ANON_KEY,
-            GROQ_API_KEY_SET: !!process.env.GROQ_API_KEY
+            SUPABASE_ANON_KEY_LENGTH: process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.length : 0,
+            GROQ_API_KEY_SET: !!process.env.GROQ_API_KEY,
+            GROQ_API_KEY_LENGTH: process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.length : 0
         },
         directories: {
             current: __dirname,
@@ -128,35 +154,6 @@ app.get('/debug', (req, res) => {
     res.json(debug);
 });
 
-app.get('/debug-supabase', (req, res) => {
-    // Mask the keys for security while still showing partial values for debugging
-    const maskSecret = (secret) => {
-        if (!secret) return 'NOT SET';
-        if (secret.length <= 8) return '****';
-        return secret.substring(0, 4) + '...' + secret.substring(secret.length - 4);
-    };
-
-    const debug = {
-        supabase: {
-            url: process.env.SUPABASE_URL || 'NOT SET',
-            keyMasked: maskSecret(process.env.SUPABASE_ANON_KEY),
-            isUrlValid: process.env.SUPABASE_URL ? 
-                process.env.SUPABASE_URL.startsWith('https://') : false,
-            injection: {
-                placeholder: '<%= process.env.SUPABASE_URL %>',
-                replacedWith: injectEnvVariables('<%= process.env.SUPABASE_URL %>')
-            }
-        },
-        html: {
-            // Sample of how the injection would work
-            sample: injectEnvVariables(`const supabaseUrl = "REPLACE_SUPABASE_URL";
-const supabaseKey = "REPLACE_SUPABASE_KEY";`)
-        }
-    };
-    
-    res.json(debug);
-});
-
 // Generate code endpoint
 app.post('/generate', async (req, res) => {
     try {
@@ -164,20 +161,36 @@ app.post('/generate', async (req, res) => {
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
+        
+        // Check if GROQ API key is configured
+        if (!process.env.GROQ_API_KEY) {
+            return res.status(500).json({ 
+                error: 'GROQ_API_KEY is not configured. Please check your environment variables.'
+            });
+        }
+        
+        console.log(`Generating code with model: ${model || 'mixtral-8x7b-32768'}, temperature: ${temperature || 0.7}`);
+        
         const completion = await groqClient.chat.completions.create({
             model: model || 'mixtral-8x7b-32768',
             messages: [
-                { role: 'system', content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration if user requests it. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' },
+                { 
+                    role: 'system', 
+                    content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' 
+                },
                 { role: 'user', content: prompt }
             ],
             temperature: parseFloat(temperature) || 0.7,
             max_tokens: 4000,
         });
+        
         const generatedCode = completion.choices[0].message.content;
-        res.json({ code: generatedCode });
+        console.log('Code generated successfully');
+        
+        res.status(200).json({ code: generatedCode });
     } catch (error) {
-        console.error('Error in /generate:', error);
-        res.status(500).json({ error: 'Failed to generate code' });
+        console.error('Error generating code:', error);
+        res.status(500).json({ error: error.message || 'Failed to generate code' });
     }
 });
 
@@ -221,24 +234,6 @@ app.get('/projects/:userId', async (req, res) => {
     }
 });
 
-// Cleanup conversations (with basic auth)
-app.post('/admin/cleanup-conversations', async (req, res) => {
-    if (req.headers.authorization !== `Bearer ${process.env.ADMIN_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    if (!supabase) {
-        return res.status(503).json({ error: 'Database connection not available' });
-    }
-    try {
-        const { error } = await supabase.rpc('delete_old_conversations');
-        if (error) throw error;
-        res.json({ success: true, message: 'Cleaned up old conversations' });
-    } catch (error) {
-        console.error('Error during cleanup:', error);
-        res.status(500).json({ error: 'Failed to clean up conversations' });
-    }
-});
-
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
@@ -248,7 +243,6 @@ app.listen(PORT, () => {
     if (supabase) {
         console.log('- POST /save-project: Save project');
         console.log('- GET /projects/:userId: Get projects');
-        console.log('- POST /admin/cleanup-conversations: Cleanup conversations');
     }
     console.log('Routes:');
     console.log('- / : Main application');
