@@ -19,22 +19,27 @@ document.addEventListener('DOMContentLoaded', function() {
             // Just preventing default behavior for Enter key (but not for Shift+Enter)
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                // Call the global generateCode function if it exists
+                if (typeof window.generateCode === 'function') {
+                    window.generateCode();
+                }
             }
         });
     }
     
-    // Fix for sidebar close button
-    const closeSidebar = document.getElementById('closeSidebar');
-    const sidebar = document.getElementById('sidebar');
-    if (closeSidebar && sidebar) {
+    // Fix for sidebar close button - avoid redeclaring sidebar
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const sidebarElement = document.getElementById('sidebar');
+    if (closeSidebarBtn && sidebarElement) {
         // Update the X button style
-        closeSidebar.className = 'close-sidebar-btn';
-        closeSidebar.innerHTML = '<i class="fas fa-times"></i>';
+        closeSidebarBtn.className = 'close-sidebar-btn';
+        closeSidebarBtn.innerHTML = '<i class="fas fa-times"></i>';
         
-        // Add the event listener
-        closeSidebar.addEventListener('click', function() {
+        // Add the event listener with improved functionality
+        closeSidebarBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             console.log('Closing sidebar');
-            sidebar.classList.remove('open');
+            sidebarElement.classList.remove('open');
         });
     }
     
@@ -68,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             align-items: center;
             justify-content: center;
             border-radius: var(--radius);
+            z-index: 100; /* Ensure it's above other elements */
         }
         
         .close-sidebar-btn:hover {
@@ -80,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             z-index: 10;
             color: hsl(var(--primary));
             transition: transform 0.2s, color 0.2s;
+            cursor: pointer !important;
         }
         
         .send-button:hover {
