@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../favicon.png">
+    <title>Sign In - 360code.io</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles/style.css">
+    <style>
+        body {
+            background-color: hsl(var(--background));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: hsl(var(--card));
+            border-radius: var(--radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .auth-header {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid hsla(var(--border) / 0.5);
+        }
+
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo-img {
+            width: 40px;
+            height: 40px;
+            margin-right: 0.5rem;
+        }
+
+        .auth-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid hsla(var(--border) / 0.5);
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: hsl(var(--muted-foreground));
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .auth-tab.active {
+            color: hsl(var(--primary));
+            border-bottom-color: hsl(var(--primary));
+        }
+
+        .auth-form-container {
+            padding: 1.5rem;
+        }
+
+        .auth-tab-content {
+            display: none;
+        }
+
+        .auth-tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: hsl(var(--foreground));
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid hsla(var(--border) / 0.5);
+            background-color: hsla(var(--card) / 0.5);
+            color: hsl(var(--foreground));
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: hsl(var(--primary));
+            box-shadow: 0 0 0 2px hsla(var(--primary) / 0.2);
+        }
+
+        .auth-submit-btn {
+            width: 100%;
+            background: linear-gradient(90deg, hsl(217, 91%, 60%) 0%, hsl(224, 76%, 48%) 100%);
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 0.5rem;
+            position: relative;
+        }
+
+        .auth-submit-btn:hover {
+            filter: brightness(1.05);
+        }
+
+        .auth-submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: hsla(var(--border) / 0.5);
+        }
+
+        .auth-divider::before {
+            margin-right: 1rem;
+        }
+
+        .auth-divider::after {
+            margin-left: 1rem;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-button {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            border: 1px solid hsla(var(--border) / 0.5);
+            background-color: hsla(var(--card) / 0.7);
+            color: hsl(var(--foreground));
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .social-button:hover {
+            background-color: hsla(var(--card) / 0.9);
+        }
+
+        .social-button i {
+            font-size: 1.125rem;
+        }
+
+        .github-button i {
+            color: #fff;
+        }
+
+        .google-button i {
+            color: #EA4335;
+        }
+
+        .auth-footer {
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            border-top: 1px solid hsla(var(--border) / 0.5);
+        }
+
+        .auth-link {
+            color: hsl(var(--primary));
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .auth-link:hover {
+            color: hsla(var(--primary) / 0.8);
+            text-decoration: underline;
+        }
+
+        /* Background effects */
+        .dot-pattern {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(hsla(var(--foreground) / 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .blue-glow {
+            position: fixed;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, hsla(217, 91%, 60%, 0.15) 0%, hsla(217, 91%, 60%, 0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(40px);
+        }
+
+        .blue-glow.top-right {
+            top: -10vw;
+            right: -10vw;
+        }
+
+        .blue-glow.bottom-left {
+            bottom: -10vw;
+            left: -10vw;
+            animation: pulse 8s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+            animation: slide-in 0.3s ease-out;
+        }
+
+        .alert-error {
+            background-color: hsla(0, 84%, 60%, 0.15);
+            border-left: 3px solid hsl(0, 84%, 60%);
+            color: hsl(0, 84%, 60%);
+        }
+
+        .alert-success {
+            background-color: hsla(142, 72%, 29%, 0.15);
+            border-left: 3px solid hsl(142, 72%, 29%);
+            color: hsl(142, 72%, 29%);
+        }
+
+        @keyframes slide-in {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background effects -->
+    <div class="dot-pattern"></div>
+    <div class="blue-glow top-right"></div>
+    <div class="blue-glow bottom-left"></div>
+
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="../logo.svg" alt="360code.io Logo" class="logo-img">
+                <h1 class="auth-title">360code.io</h1>
+            </div>
+            <p>Sign in to access AI-powered code generation</p>
+        </div>
+
+        <div id="auth-tabs" class="auth-tabs">
+            <div class="auth-tab active" data-auth-tab="signin">Sign In</div>
+            <div class="auth-tab" data-auth-tab="signup">Sign Up</div>
+        </div>
+
+        <div class="auth-form-container">
+            <!-- Sign In Form -->
+            <div id="signinTab" class="auth-tab-content active">
+                <div id="signinAlerts"></div>
+                <form id="signinForm">
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <input type="email" id="signinEmail" class="auth-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <input type="password" id="signinPassword" class="auth-input" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="auth-submit-btn">Sign In</button>
+                    </div>
+                </form>
+
+                <div class="auth-divider">Or sign in with</div>
+
+                <div class="social-buttons">
+                    <button id="githubSignIn" class="social-button github-button">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </button>
+                    <button id="googleSignIn" class="social-button google-button">
+                        <i class="fab fa-google"></i>
+                        <span>Google</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signupTab" class="auth-tab-content">
+                <div id="signupAlerts"></div>
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" class="auth-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" class="auth-input" required minlength="6">
+                        <small style="display: block; margin-top: 0.25rem; color: hsl(var(--muted-foreground));">Password must be at least 6 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="auth-submit-btn">Sign Up</button>
+                    </div>
+                </form>
+
+                <div class="auth-divider">Or sign up with</div>
+
+                <div class="social-buttons">
+                    <button id="githubSignUp" class="social-button github-button">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </button>
+                    <button id="googleSignUp" class="social-button google-button">
+                        <i class="fab fa-google"></i>
+                        <span>Google</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-footer">
+            <p>&copy; 2025 360code.io - All rights reserved</p>
+        </div>
+    </div>
+
+    <!-- Supabase library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+    
+    <!-- Initialize Supabase client -->
+    <script>
+        // Initialize Supabase client with environment variables
+        const supabaseUrl = '<%= process.env.SUPABASE_URL %>';
+        const supabaseKey = '<%= process.env.SUPABASE_ANON_KEY %>';
+        let supabaseClient = null;
+
+        try {
+            if (supabaseUrl && supabaseKey) {
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase initialized successfully');
+            } else {
+                console.log('Supabase credentials not available');
+            }
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+        }
+        
+        window.supabaseClient = supabaseClient;
+    </script>
+    
+    <!-- Auth handling script -->
+    <script src="../js/auth.js"></script>
+
+    <script>
+        // Handle tab switching
+        document.addEventListener('DOMContentLoaded', function() {
+            const authTabs = document.querySelectorAll('.auth-tab');
+            const tabContents = document.querySelectorAll('.auth-tab-content');
+            
+            authTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-auth-tab');
+                    
+                    // Update active tab
+                    authTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Show selected content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabName + 'Tab') {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

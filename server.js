@@ -47,13 +47,41 @@ if (supabaseUrl && supabaseKey) {
     }
 }
 
+// Templating function to inject environment variables
+function injectEnvVariables(html) {
+    return html
+        .replace('<%= process.env.SUPABASE_URL %>', process.env.SUPABASE_URL || '')
+        .replace('<%= process.env.SUPABASE_ANON_KEY %>', process.env.SUPABASE_ANON_KEY || '');
+}
+
+// Auth routes
+app.get('/auth', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'auth', 'index.html');
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading auth page:', err);
+            return res.status(500).send('Error loading authentication page');
+        }
+        const processedHtml = injectEnvVariables(data);
+        res.send(processedHtml);
+    });
+});
+
+app.get('/auth/callback', (req, res) => {
+    // Redirect to main app after OAuth callback
+    res.redirect('/');
+});
+
 // Serve index.html with injected credentials
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'), {
-        headers: {
-            'SUPABASE_URL': process.env.SUPABASE_URL,
-            'SUPABASE_ANON_KEY': process.env.SUPABASE_ANON_KEY
+    const filePath = path.join(__dirname, 'public', 'index.html');
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading index.html:', err);
+            return res.status(500).send('Error loading application');
         }
+        const processedHtml = injectEnvVariables(data);
+        res.send(processedHtml);
     });
 });
 
@@ -67,7 +95,7 @@ app.post('/generate', async (req, res) => {
         const completion = await groqClient.chat.completions.create({
             model: model || 'mixtral-8x7b-32768',
             messages: [
-                { role: 'system', content: 'You are an expert developer...' },
+                { role: 'system', content: 'You are an expert developer. Generate clean, well-commented code based on the request. Include Supabase integration when appropriate. Wrap code blocks in triple backticks with the language name to help the client parse them correctly.' },
                 { role: 'user', content: prompt }
             ],
             temperature: parseFloat(temperature) || 0.7,
@@ -150,4 +178,8 @@ app.listen(PORT, () => {
         console.log('- GET /projects/:userId: Get projects');
         console.log('- POST /admin/cleanup-conversations: Cleanup conversations');
     }
+    console.log('Routes:');
+    console.log('- / : Main application');
+    console.log('- /auth : Authentication page');
+    console.log('- /auth/callback : OAuth callback handler');
 });
