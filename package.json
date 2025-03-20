@@ -16,7 +16,8 @@
         "next": "^14.2.25",
         "react": "^18",
         "react-dom": "^18",
-        "react-syntax-highlighter": "^5.8.0"
+        "react-syntax-highlighter": "^5.8.0",
+        "@ai-sdk/groq": "^0.0.39"
     },
     "devDependencies": {
         "@types/node": "^20",
