@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 
@@ -17,21 +17,35 @@ type SupabaseContextType = {
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
 
+// Create a client-side singleton to prevent multiple instances
+let supabaseClient: SupabaseClient | null = null
+
+const getSupabaseClient = () => {
+  if (!supabaseClient && typeof window !== 'undefined') {
+    supabaseClient = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }
+  return supabaseClient
+}
+
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null)
   const router = useRouter()
-  
-  // Use createClient directly instead of createClientComponentClient
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   useEffect(() => {
+    // Initialize Supabase client on the client side
+    const client = getSupabaseClient()
+    setSupabase(client)
+
     const getUser = async () => {
+      if (!client) return
+
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        const { data: { user }, error } = await client.auth.getUser()
         if (error) {
           console.error('Error fetching user:', error)
           setUser(null)
@@ -48,19 +62,24 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: string, session: { user: User } | null) => {
-        setUser(session?.user ?? null)
-        router.refresh()
-      }
-    )
+    // Only set up listeners when client exists
+    if (client) {
+      const { data: { subscription } } = client.auth.onAuthStateChange(
+        (_event, session) => {
+          setUser(session?.user ?? null)
+          router.refresh()
+        }
+      )
 
-    return () => {
-      subscription.unsubscribe()
+      return () => {
+        subscription.unsubscribe()
+      }
     }
-  }, [supabase, router])
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) return Promise.reject('No Supabase client')
+    
     setLoading(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -82,6 +101,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) return Promise.reject('No Supabase client')
+    
     setLoading(true)
     try {
       const { error } = await supabase.auth.signUp({
@@ -101,6 +122,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    if (!supabase) return Promise.reject('No Supabase client')
+    
     try {
       await supabase.auth.signOut()
       router.push('/auth')
@@ -112,6 +135,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signInWithProvider = async (provider: 'github' | 'google') => {
+    if (!supabase) return Promise.reject('No Supabase client')
+    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -127,6 +152,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       console.error(`Error signing in with ${provider}:`, error)
       throw error
     }
+  }
+
+  // Only render children when supabase is available
+  if (!supabase) {
+    return null
   }
 
   const value = {

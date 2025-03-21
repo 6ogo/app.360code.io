@@ -1,4 +1,4 @@
-/** @type {import('@tailwindcss/postcss').Config} */
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -26,8 +26,8 @@ module.exports = {
         glow: '0 0 20px rgba(59, 130, 246, 0.3)',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'monospace'],
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out',
