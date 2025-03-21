@@ -1,3 +1,4 @@
+// components/FinalClientComponents.tsx
 'use client';
 
 import dynamic from 'next/dynamic';
@@ -45,7 +46,15 @@ const CollaboratorCursors = dynamic(() => import('@/components/collaboration/Col
   ssr: false,
 });
 
-export function EnhancedClientComponents() {
+const AnalyticsButton = dynamic(() => import('@/components/analytics/AnalyticsButton'), {
+  ssr: false,
+});
+
+const ModelConfigButton = dynamic(() => import('@/components/model/ModelConfigButton'), {
+  ssr: false,
+});
+
+export function FinalClientComponents() {
   const [selectedPrompt, setSelectedPrompt] = useState<string>('');
   
   // Handle applying a prompt template
@@ -72,16 +81,22 @@ export function EnhancedClientComponents() {
       <FileExplorer />
       <ProjectProgress />
       
-      {/* New feature buttons */}
+      {/* Template features */}
       <TemplateButton onSelectTemplate={handleApplyPromptTemplate} />
       <DesktopGameButton />
-      <SchemaButton />
-      <ExportButton />
-      <OptimizationButton />
-      <CollaborationButton />
       
-      {/* Collaboration cursors */}
+      {/* Database and code features */}
+      <SchemaButton />
+      <OptimizationButton />
+      
+      {/* Export and sharing */}
+      <ExportButton />
+      <CollaborationButton />
       <CollaboratorCursors />
+      
+      {/* Analytics and configuration */}
+      <AnalyticsButton />
+      <ModelConfigButton />
     </>
   );
 }

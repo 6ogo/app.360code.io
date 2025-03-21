@@ -8,37 +8,46 @@ import { projectStore } from '@/lib/stores/projectContext';
 import { continueProject } from '@/lib/services/projectContinuation';
 import { generateDocumentation } from '@/lib/services/documentationGenerator';
 import { workbenchStore } from '@/lib/stores/workbench';
+import { useCollaboration } from '../../lib/collaboration/collaborationsService';
 import BaseChat from './BaseChat';
 import { useSnapScroll, useMessageParser } from '@/lib/hooks';
 import { ToastContainer, toast } from '@/components/ToastWrapper';
-import { ProjectStatus } from '@/components/ProjectStatus';
 import { DocumentationViewer } from '@/components/DocumentationViewer';
 import { ProjectSummary } from '@/components/ProjectSummary';
 import { Message } from '@/types/conversation';
 import { AppMessage } from '@/types/message';
 
-export default function Chat() {
+interface ChatClientProps {
+  initialPrompt?: string;
+}
+
+export default function Chat({ initialPrompt = '' }: ChatClientProps) {
   const [messageRef, scrollRef] = useSnapScroll();
   const { parsedMessages, parseMessages } = useMessageParser();
   const [isStreaming, setIsStreaming] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [customInput, setCustomInput] = useState(initialPrompt);
+  
   const project = useStore(projectStore);
   const files = useStore(workbenchStore.files);
+  const collaboration = useCollaboration();
   
   const {
     messages: aiMessages,
     input,
     handleInputChange,
     handleSubmit,
+    setInput,
     setMessages: setAiMessages,
     isLoading,
     stop
   } = useChat({
     api: '/api/chat',
+    initialInput: initialPrompt,
     onResponse: () => {
       setIsStreaming(true);
     },
-    onFinish: () => {
+    onFinish: (message) => {
       setIsStreaming(false);
       
       // Once response is complete, generate documentation
@@ -60,6 +69,14 @@ export default function Chat() {
       }
       
       setIsContinuing(false);
+      
+      // If in collaboration mode, broadcast the latest file changes
+      if (collaboration.getState().isJoined) {
+        // Broadcast all files to collaborators
+        Object.entries(files).forEach(([path, content]) => {
+          collaboration.broadcastFileChange(path, content);
+        });
+      }
     },
     onError: (error) => {
       setIsStreaming(false);
@@ -67,6 +84,13 @@ export default function Chat() {
       toast.error(`Error: ${error.message || 'An error occurred'}`);
     }
   });
+
+  // Handle initialPrompt changes
+  useEffect(() => {
+    if (initialPrompt && initialPrompt !== input) {
+      setInput(initialPrompt);
+    }
+  }, [initialPrompt, setInput]);
 
   useEffect(() => {
     // Convert AI SDK messages to our app format for parsing
@@ -153,6 +177,23 @@ export default function Chat() {
   }));
 
   const divRef = useRef<HTMLDivElement | null>(null);
+  
+  // Custom input handler with collaboration support
+  const handleCustomInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCustomInput(e.target.value);
+    handleInputChange(e);
+  };
+  
+  // Custom submit handler with collaboration support
+  const handleCustomSubmit = (e: React.FormEvent, options?: any) => {
+    if (collaboration.getState().isJoined) {
+      // Before submitting, broadcast the current cursor position
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      collaboration.broadcastCursorPosition(rect.left, rect.top);
+    }
+    
+    handleSubmit(e, options);
+  };
 
   return (
     <>
@@ -164,15 +205,10 @@ export default function Chat() {
         isStreaming={isStreaming}
         messages={convertedMessages}
         input={input}
-        handleInputChange={handleInputChange}
+        handleInputChange={handleCustomInputChange}
         handleStop={stop}
-        sendMessage={handleSubmit}
+        sendMessage={handleCustomSubmit}
       />
-      
-      {/* Keep the old components available, but hide them as they're replaced by improved ones */}
-      <div className="hidden">
-        <ProjectStatus />
-      </div>
       
       <DocumentationViewer />
       <ProjectSummary />
